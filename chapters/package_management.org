@@ -1,0 +1,244 @@
+* Package management
+
+Using =pkg= for binary package management
+
+** Install =pkg=
+
+Usually, =FreeBSD= will prompt you to install =pkg= for the first time to run the ~pkg~ command, but you can install it via =port= like below:
+
+#+BEGIN_SRC bash
+  # Switch =root=
+  cd /usr/ports/ports-mgmt/pkg
+  make
+  make install clean
+#+END_SRC
+
+
+** Setup mirror repo
+
+By default, =pkg= uses the closest mirror automatic, but you should still create your own configuration by the following steps:
+
+*** Create your own =pkg= config
+
+You should be able to find all mirrors from [[https://pkg.freebsd.org/][pkg.freebsd.org]]
+
+#+BEGIN_SRC bash
+  doas mkdir -p /usr/local/etc/pkg/repos
+  doas cp /etc/pkg/FreeBSD.conf /usr/local/etc/pkg/repos/FreeBSD.conf
+#+END_SRC
+
+
+*** Change from =Quarterly= to =latest= branch
+
+The =Quarterly= branch provides users with a more predictable and stable experience for =port= and package installation and upgrades.
+
+The =Quarterly= branch is cut from =HEAD= at the beginning of every (yearly) quarter in =January, April, July, and October=. Branches are named according to the year (=YYYY=) and quarter (=Q1-4=) they are created in. For example, the quarterly branch created in =January 2016=, is named =2016Q1=.
+
+And the =Latest= branch provides the latest versions of the packages to the users. Personally, I prefer switch to the =Lates= branch:)
+
+Edit =/usr/local/etc/pkg/repos/FreeBSD.conf= and change =url= to:
+
+=url: "http://${MIRROR_URL_HERE}/${ABI}/latest"=
+
+Make sure to change URL prefix from =pkg+http:= to =http:= only, otherwise, you will see the following error when running =pgk update -f=:
+
+#+BEGIN_SRC bash
+  pkg: packagesite URL error for pkg+http://pkg0.syd.FreeBSD.org/FreeBSD:14:amd64/quarterly/packagesite.pkg -- pkg+:// implies SRV mirror type
+  pkg: packagesite URL error for pkg+http://pkg0.syd.FreeBSD.org/FreeBSD:14:amd64/quarterly/packagesite.txz -- pkg+:// implies SRV mirror type
+  Unable to update repository FreeBSD
+  Error updating repositories!
+#+END_SRC
+
+
+After that, force to update:
+
+#+BEGIN_SRC bash
+  doas pkg update -f
+#+END_SRC
+
+
+Optionally, upgrade all installed packages, and I highly recommend you to do that:
+
+#+BEGIN_SRC bash
+  doas pkg upgrade
+#+END_SRC
+
+
+** Update =pkg= meta data and upgrade all installed packages
+
+Force to update the repo metadata:
+
+#+BEGIN_SRC bash
+  pkg update -f
+#+END_SRC
+
+
+Upgrade all installed packages:
+
+#+BEGIN_SRC bash
+  doas pkg upgrade
+#+END_SRC
+
+
+** How to print the pkg command help
+
+#+BEGIN_SRC bash
+  pkg help COMMAND_HERE
+
+  # pkg help search
+  # pkg help install
+  # pkg help info
+  # pkg help delete
+#+END_SRC
+
+
+** Search packages to install
+
+#+BEGIN_SRC bash
+  #
+  # Search package by name, name can be just the name or with the version!!!
+  #
+  pkg search PACKAGE_NAME
+  pkg search --label pkg-name PACKAGE_NAME
+
+  # If you want the longer package description
+  pkg search --description PACKAGE_NAME
+#+END_SRC
+
+
+Different output options:
+
+*** Show the package category in =Ports=
+
+#+BEGIN_SRC bash
+  pkg search --origins neovim
+
+  #
+  # For example
+  #
+  # editors/languageclient-neovim  Language Server Protocol (LSP) support for vim and neovim
+  # editors/neovim                 Next-generation Vim
+  # editors/neovim-gtk             Neovim client library and GTK4 GUI
+  # editors/neovim-qt              Neovim client library and QT5 GUI
+  # editors/neovim-qt              Neovim client library and QT6 GUI
+  # editors/rubygem-neovim         Ruby bindings for neovim
+#+END_SRC
+
+
+*** Show the package repository info
+
+#+BEGIN_SRC bash
+  pkg search -o --query-modifier repository neovim
+
+  #
+  # For example
+  #
+  # editors/neovim
+  # Repository     : FreeBSD [pkg+http://pkg0.syd.freebsd.org/FreeBSD:13:amd64/latest]
+  # Comment        : Next-generation Vim
+  # editors/neovim-qt
+  # Repository     : FreeBSD [pkg+http://pkg0.syd.freebsd.org/FreeBSD:13:amd64/latest]
+  # Comment        : Neovim client library and QT5 GUI
+  # editors/rubygem-neovim
+  # Repository     : FreeBSD [pkg+http://pkg0.syd.freebsd.org/FreeBSD:13:amd64/latest]
+  # Comment        : Ruby bindings for neovim
+#+END_SRC
+
+
+*** Show the package repository (only the URL part)
+
+#+BEGIN_SRC bash
+  pkg search -o --query-modifier url neovim
+
+  #
+  # For example
+  #
+  # editors/neovim
+  # Comment        : Next-generation Vim
+  # Pkg URL        : pkg+http://pkg0.syd.freebsd.org/FreeBSD:13:amd64/latest/All/neovim-0.8.1.pkg
+  # editors/neovim-qt
+  # Comment        : Neovim client library and QT5 GUI
+  # Pkg URL        : pkg+http://pkg0.syd.freebsd.org/FreeBSD:13:amd64/latest/All/neovim-qt-0.2.17_1.pkg
+  # editors/rubygem-neovim
+  # Comment        : Ruby bindings for neovim
+  # Pkg URL        : pkg+http://pkg0.syd.freebsd.org/FreeBSD:13:amd64/latest/All/rubygem-neovim-0.9.0.pkg
+  #+END_SRC
+
+
+** Install and remove
+
+#+BEGIN_SRC bash
+  # Install package by name
+  pkg install PACKAGE_NAME
+
+  # Remove package by name
+  pkg delete PACKAGE_NAME
+#+END_SRC
+
+
+** Search all packges that required by the give package
+
+#+BEGIN_SRC bash
+  pkg info --required-shlibs PACKGE_NAME
+#+END_SRC
+
+
+** Query already installed packages
+
+Display only name with version, simple description and install size:
+
+#+BEGIN_SRC bash
+  pkg info --comment --size --all | rg -A2 PACKGE_NAME
+#+END_SRC
+
+
+** Package detail info for the given package
+
+#+BEGIN_SRC bash
+  pkg info PACKGE_NAME
+#+END_SRC
+
+
+** List install files for the given package
+
+#+BEGIN_SRC bash
+  pkg info --list-files PACKGE_NAME
+#+END_SRC
+
+
+** Auditing Installed Packages
+
+Software vulnerabilities are regularly discovered in third-party applications. To address this, =pkg= includes a built-in auditing mechanism. To determine if there are any known vulnerabilities for the software installed on the system:
+
+#+BEGIN_SRC bash
+  pkg audit -F
+#+END_SRC
+
+
+** Automatically Removing Unused Packages
+
+Removing a package may leave behind dependencies which are no longer required. Unneeded packages that were installed as dependencies (leaf packages) can be automatically detected and removed using:
+
+#+BEGIN_SRC bash
+  pkg autoremove
+#+END_SRC
+
+
+** Cleanup cache
+
+Clean the entire cache which located at =/var/cache/pkg= by default
+
+#+BEGIN_SRC bash
+  # `--dry-run` only show what will be affected but doesn't execute
+  pkg clean --dry-run --all
+  # The following package files will be deleted:
+  #         /var/cache/pkg/doas-6.3p9~75e7962988.pkg
+  #         /var/cache/pkg/doas-6.3p9.pkg
+  #         /var/cache/pkg/lsblk-3.7~149284eee5.pkg
+  #         /var/cache/pkg/lsblk-3.7.pkg
+  # The cleanup will free 29 KiB
+
+
+  # After confirming, you can run the real cleanup:
+  pkg clean --all
+#+END_SRC
