@@ -1,4 +1,10 @@
 * My =FreeBSD= handbook
 
-
+** [[file:chapters/installation.org][Install FreeBSD]]
 ** [[file:chapters/package_management.org][Package management]]
+** [[file:chapters/install-gpu-drivers.org][Install GPU drivers]]
+** Make boot faster
+** =ZFS= - Take a base snapshot before installing anywhere else
+** Install =DE (Desktop Environment)= or =WM (Window Manager)=
+*** Install =X=
+*** Install =Hyprland=

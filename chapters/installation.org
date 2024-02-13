@@ -1,0 +1,100 @@
+* Install FreeBSD
+
+** Boot from USB
+
+*** Destroy the existing partition table
+
+If you want to install via USB, make sure to destroy the USB partition table:
+
+#+BEGIN_SRC bash
+  # `sdX` should replace to your correct USB device!!!
+  # `sdX` should replace to your correct USB device!!!
+  # `sdX` should replace to your correct USB device!!!
+  sudo dd if=/dev/zero of=/dev/sdX bs=512 count=1
+#+END_SRC
+
+
+** Download FreeBSD boot ISO
+
+You can goto [[https://www.freebsd.org/where.html#download][here]] and pick the ISO you want.
+
+[[https://www.freebsd.org/doc/en_US.ISO8859-1/books/handbook/bsdinstall-pre.html][Here]] describes the differences between different types of ISO:
+
+- =bootonly.iso=: This is the smallest installation file as it only contains the installer. A working Internet connection is required during installation as the installer will download the files it needs to complete the FreeBSD installation. This file should be burned to a CD using a CD burning application.
+
+- =disc1.iso=: This file contains all of the files needed to install FreeBSD, its source, and the Ports Collection. It should be burned to a CD using a CD burning application.
+
+- =dvd1.iso=: This file contains all of the files needed to install FreeBSD, its source, and the Ports Collection. It also contains a set of popular binary packages for installing a window manager and some applications so that a complete system can be installed from media without requiring a connection to the Internet. This file should be burned to a DVD using a DVD burning application.
+
+- =memstick.img=: This file contains all of the files needed to install FreeBSD, its source, and the Ports Collection. It should be burned to a USB stick using the instructions below.
+
+- =mini-memstick.img=: Like =bootonly.iso=, does not include installation files, but downloads them as needed. A working internet connection is required during installation.
+
+
+** Before install if using =Parallels Desktop=
+
+Hardware -> Boot Order -> Advance... -> =vm.bios.efi = 1=
+
+
+** Install process
+
+[[https://docs.freebsd.org/en/books/handbook/bsdinstall/#using-bsdinstall][bsdinstall]] doc provides a very detailed guide, you should go and have a look if you suck into something you don't understand.
+
+Here are the steps I need to make some changes:
+
+*** Partitioning
+
+Choose =Auto (ZFS)=
+
+
+*** ZFS Configuration
+, UEFI-only, GPT (GUID Partition Table)=
+
+- Pool Type/Disks: Choose =stripe - No Redundancy=
+- Partition Scheme: Choose =GPT (UEFI-only)=
+- Swap Size: Choose =0=
+
+
+*** Distribution Select
+
+[x] ports
+[x] src
+
+Here are the descriptions for all components:
+
+=base-dbg= - Base tools like cat and ls, among many others, with debug symbols activated.
+
+=kernel-dbg= - Kernel and modules with debug symbols activated.
+
+=lib32-dbg= - Compatibility libraries for running 32-bit applications on a 64-bit version of FreeBSD with debug symbols activated.
+
+=lib32= - Compatibility libraries for running 32-bit applications on a 64-bit version of FreeBSD.
+
+=ports= - The FreeBSD Ports Collection is a collection of files which automates the downloading, compiling and installation of third-party software packages. Installing Applications: Packages and Ports discusses how to use the Ports Collection.
+
+The installation program does not check for adequate disk space. Select this option only if sufficient hard disk space is available. The FreeBSD Ports Collection takes up about 3 GB of disk space.
+
+=src= - The complete FreeBSD source code for both the kernel and the userland. Although not required for the majority of applications, it may be required to build device drivers, kernel modules, or some applications from the Ports Collection. It is also used for developing FreeBSD itself. The full source tree requires 1 GB of disk space and recompiling the entire FreeBSD system requires an additional 5 GB of space.
+
+=tests= - FreeBSD Test Suite.
+
+
+*** System Configuration
+
+[x] sshd
+[x] ntpd
+[x] ntpd_sync_on_start
+[x] powerd
+
+
+*** System Hardening
+
+[x] random_pid
+[x] clear_tmp
+[x] disable_sendmail
+[x] secure_console
+
+
+*** Add Users
+
+Invite user into other groups? []: wheel

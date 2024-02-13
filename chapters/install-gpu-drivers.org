@@ -1,0 +1,96 @@
+* Install GPU drivers
+
+You shoul have a look at the [[https://docs.freebsd.org/en/books/handbook/x11/#x-graphic-card-drivers][graphic-card-driver]] official doc for more details!!!
+
+** List your GPU info
+
+#+BEGIN_SRC bash
+  pciconf -lv|grep -B4 VGA
+#+END_SRC
+
+
+** Install your GPU driver
+
+The =Direct Rendering Manager (DRM)= is a subsystem of the Linux kernel responsible for interfacing with GPUs of modern video cards.
+
+=drm-kmod=: DRM kernel module.
+
+*** Intel
+
+#+BEGIN_SRC bash
+  pkg install drm-kmod
+#+END_SRC
+
+And then add the following settings to ~/etc/rc.conf~ to load GPU driver module:
+
+#+BEGIN_SRC text
+  sysrc kld_list+=i915kms  
+#+END_SRC
+
+
+*** AMD
+
+#+BEGIN_SRC bash
+  pkg install drm-kmod
+#+END_SRC
+
+And then add the following settings to ~/etc/rc.conf~ to load GPU driver module:
+
+#+BEGIN_SRC text
+  sysrc kld_list+=amdgpu
+#+END_SRC
+
+
+** Optionally, install =drm_info= to print the device info
+
+** Paralles Desktop GPU issue
+
+If you run =dmesg -a= and search for =vga=, then you should be able to the following logs:
+
+#+BEGIN_SRC text
+  vgapci0: <VGA-compatible display> port 0xc000-0xc01f mem 0xc0000000-0xcfffffff at device 0.0 on pci1
+  1 vgapci0: Boot video device
+  2 pci0: <unknown> at device 3.0 (no driver attached)
+#+END_SRC
+
+And that =pci0= is the GPU:
+
+#+BEGIN_SRC text
+  vgapci0@pci0:1:0:0:     class=0x030000 rev=0x00 hdr=0x00 vendor=0x1ab8 device=0x4005 subvendor=0x1ab8 subdevice=0x0400
+    vendor     = 'Parallels, Inc.'
+    device     = 'Accelerated Virtual Video Adapter'
+    class      = display
+    subclass   = VGA
+#+END_SRC
+
+That said no =virtio-gpu= driver!!!
+
+But =FreeBSD 14= does have the =virtio-gpu= driver, if you run ~man virtio-gpu~, then you will see this:
+
+#+BEGIN_SRC text
+  VIRTIO_GPU(4)          FreeBSD Kernel Interfaces Manual          VIRTIO_GPU(4)
+
+  NAME
+       virtio_gpu – VirtIO GPU driver
+
+  SYNOPSIS
+       To compile this driver into the kernel, place the following lines in your
+       kernel configuration file:
+
+             device virtio_gpu
+
+  DESCRIPTION
+       The virtio_gpu device driver provides support for VirtIO gpu devices to
+       create a vt(4) console.
+
+  SEE ALSO
+       virtio(4) vt(4)
+
+  HISTORY
+       The virtio_gpu driver first appeared in FreeBSD 14.0.
+
+  FreeBSD 14.0-RELEASE-p3         August 14, 2023        FreeBSD 14.0-RELEASE-p3
+#+END_SRC
+
+
+It seems you can build the custom kernel to fix this rather than fallback to use =Frame Buffer= driver (=x11-drivers/xf86-video-scfb=)???:)
