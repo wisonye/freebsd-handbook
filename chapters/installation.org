@@ -33,7 +33,19 @@ You can goto [[https://www.freebsd.org/where.html#download][here]] and pick the 
 
 ** Before install if using =Parallels Desktop=
 
+*** Add =vm.bios.efi = 1=
+
 Hardware -> Boot Order -> Advance... -> =vm.bios.efi = 1=
+
+
+*** Remove printer
+
+Hardware -> Printer, then press =-= button to remove it.
+
+
+*** Remove floppy
+
+Hardware -> Floppy, then press =-= button to remove it.
 
 
 ** Install process

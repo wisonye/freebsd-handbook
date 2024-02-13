@@ -32,3 +32,7 @@ Add the following settings to ~/boot/loader.conf~:
   loader_logo="beastie"
 #+END_SRC
 
+
+** Remove the CD/DVD if you're using =Paralles Desktop=
+
+Hardware -> CD/DVD, then press =-= button to remove it.
