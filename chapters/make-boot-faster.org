@@ -1,0 +1,38 @@
+* Make boot faster
+
+The default boot loader setting is inside ~/boot/defaults/loader.conf~.
+
+But DO NOT modify it directly, you should copy the settings you want and override them in ~/boot/loader.conf~!!!
+
+
+** No delay countdown
+
+Add the following settings to ~/boot/loader.conf~:
+
+#+BEGIN_SRC bash
+  autoboot_delay="1"
+#+END_SRC
+
+
+** Solve =Root mount waiting for: usbusX= issue
+
+Add the following settings to ~/boot/loader.conf~:
+
+#+BEGIN_SRC text
+  # Don't wait for USB
+  hw.usb.no_boot_wait=1
+#+END_SRC
+
+
+** Change boot loader logo
+
+Add the following settings to ~/boot/loader.conf~:
+
+#+BEGIN_SRC bash
+  loader_logo="beastie"
+#+END_SRC
+
+
+** Remove the CD/DVD if you're using =Paralles Desktop=
+
+Hardware -> CD/DVD, then press =-= button to remove it.
