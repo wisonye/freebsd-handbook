@@ -9,6 +9,6 @@
 *** Install =X=
 *** Install =Hyprland=
 ** ZFS dive deep
-*** ZFS overview
-*** ZFS snapshot feature
-*** ZFS compress feature
+*** [[file:chapters/zfs-overview.org][ZFS overview]]
+*** [[file:chapters/zfs-snapshot-feature.org][ZFS snapshot feature]]
+*** [[file:chapters/zfs-compress-feature.org][ZFS compress feature]]
