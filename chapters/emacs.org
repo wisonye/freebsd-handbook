@@ -1,0 +1,7 @@
+* Emacs
+
+** =ispell=
+
+#+BEGIN_SRC bash
+  doas pkg install aspell-ispell en-aspell
+#+END_SRC

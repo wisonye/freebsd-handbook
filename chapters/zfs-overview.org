@@ -1,0 +1,146 @@
+* =ZFS= overview
+
+The =Z File System= (=ZFS=) is an advanced file system designed to overcome many of the major problems found in previous designs.
+
+=ZFS= can Self-Healing automatic, originally developed at =Sun™=, ongoing open source =ZFS= development has moved to the =OpenZFS= project.
+
+** Enable =ZFS=
+
+Add the the following settings to ~/etc/rc.conf~:
+
+#+BEGIN_SRC text
+  zfs_enable="YES"
+#+END_SRC
+
+Or you can turn it on and restart manually by running: 
+
+#+BEGIN_SRC bash
+  doas service zfs enable
+  doas service zfs restart
+#+END_SRC
+
+
+** What is =zpool=?
+
+Surmise, =ZFS= concept just like the Logical Volume you know, you can add one or more disks(even disk partitions) into a =Single share disk space= which call a =pool=. I simply say =Disk Pool=.
+
+By default, if you choose =Auto ZFS= with =stripe No Redundancy= when installing the =FreeBSD=, then you got a default pool called =zroot=.
+
+It similar to run following command to create a single disk pool:
+
+#+BEGIN_SRC bash
+  # `SCSI` disks with the device names `da0`, `da1`, and `da2`. 
+  # Users of `SATA` hardware should instead use `ada` device names.
+  zpool create zroot /dev/da0
+#+END_SRC
+
+
+After installation, it will end up with =zroot= pool like this:
+
+#+BEGIN_SRC bash
+  zpool list
+  # NAME    SIZE  ALLOC   FREE  CKPOINT  EXPANDSZ   FRAG    CAP  DEDUP    HEALTH  ALTROOT
+  # zroot  63.5G  10.1G  53.4G        -         -     4%    15%  1.00x    ONLINE  -
+
+
+  zpool status
+  #   pool: zroot
+  #  state: ONLINE
+  # config:
+  # 
+  #         NAME        STATE     READ WRITE CKSUM
+  #         zroot       ONLINE       0     0     0
+  #           ada0p2    ONLINE       0     0     0
+  # 
+  # errors: No known data errors
+#+END_SRC
+
+
+** What is =Dataset=?
+
+A =zpool= just the total available disk space from one or more disks, that's it, nothing else.
+
+That means it does NOT contain any =File System= at all, you need to create =Dataset= to hold the =File System= and mount it to the a folder to store files!!!
+
+So, that's the relationship: =Pool --> Dataset --> Folder/Files=
+
+After the default =auto ZFS= installation, it similar to you run the following commands to create multiple =Dataset= and mount to specified folders:
+
+#+BEGIN_SRC bash
+  #
+  # `zfs create` creates a dateset (file system), 
+  # `-o` means options
+  #
+  zfs create -o mountpoint=none zroot/ROOT
+  zfs create -o mountpoint=/ zroot/ROOT/default
+
+  zfs create -o mountpoint=/tmp zroot/tmp
+
+  zfs create -o mountpoint=/home zroot/home
+
+  zfs create -o mountpoint=/usr zroot/usr
+  zfs create -o mountpoint=/usr/ports zroot/usr/ports
+  zfs create -o mountpoint=/usr/src zroot/usr/src
+
+  zfs create -o mountpoint=/var zroot/var
+  zfs create -o mountpoint=/var/audit zroot/var/audit
+  zfs create -o mountpoint=/var/crash zroot/var/crash
+  zfs create -o mountpoint=/var/log zroot/var/log
+  zfs create -o mountpoint=/var/mail zroot/var/mail
+  zfs create -o mountpoint=/var/tmp zroot/var/tmp
+#+END_SRC
+
+So, it will end up with the =Datasets= like below:
+
+#+BEGIN_SRC bash
+  zfs list
+
+  # NAME                                        USED  AVAIL  REFER  MOUNTPOINT
+  # zroot                                      10.1G  51.5G    96K  /zroot
+  # zroot/ROOT                                 3.52G  51.5G    96K  none
+  # zroot/ROOT/14.0-RELEASE_2024-02-10_114211     8K  51.5G  1.00G  /
+  # zroot/ROOT/default                         3.52G  51.5G  3.26G  /
+  # zroot/home                                 1.32G  51.5G  1.32G  /home
+  # zroot/tmp                                   160K  51.5G   160K  /tmp
+  # zroot/usr                                  5.23G  51.5G    96K  /usr
+  # zroot/usr/ports                            4.43G  51.5G  4.43G  /usr/ports
+  # zroot/usr/src                               816M  51.5G   816M  /usr/src
+  # zroot/var                                   724K  51.5G    96K  /var
+  # zroot/var/audit                              96K  51.5G    96K  /var/audit
+  # zroot/var/crash                              96K  51.5G    96K  /var/crash
+  # zroot/var/log                               204K  51.5G   204K  /var/log
+  # zroot/var/mail                              136K  51.5G   136K  /var/mail
+  # zroot/var/tmp                                96K  51.5G    96K  /var/tmp
+#+END_SRC
+
+
+You're able to add any =Dataset= at any time you want. And destroy a =mounted Dataset= is more faster than you delete a folder (inclues all files inside that folder), as it doesn't need to do checking, just remove a part of the disk space, that's it.
+
+#+BEGIN_SRC bash
+  #
+  # Create a dataset call `my-data` with the specified mount point.
+  # If you don't add the `-o mountpoint` attribute there, it will
+  # be created and mounted in `/zroot/my-data`!!!
+  #
+  doas zfs create -o mountpoint=/usr/home/$USER/my-data zroot/my-data
+
+  #
+  # Change the mounted folder owner
+  #
+  doas chown -R $USER:$USER ~/my-data
+
+  #
+  # Write or access 
+  #
+  echo "test" > ~/my-data/test.log
+
+  #
+  # Destroy the entire dataset, it won't delete mounted folder
+  #
+  doas zfs destroy zroot/my-data
+
+  #
+  # Remove the empty folder if needed
+  #
+  rm -rf ~/my-data
+#+END_SRC
