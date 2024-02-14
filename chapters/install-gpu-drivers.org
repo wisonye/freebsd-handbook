@@ -1,6 +1,7 @@
 * Install GPU drivers
 
 You shoul have a look at the [[https://docs.freebsd.org/en/books/handbook/x11/#x-graphic-card-drivers][graphic-card-driver]] official doc for more details!!!
+Also, another doc is here: [[https://wiki.freebsd.org/Graphics][FreeBSD-Graphics]].
 
 ** List your GPU info
 

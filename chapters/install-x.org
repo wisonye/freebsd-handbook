@@ -1,0 +1,51 @@
+* Install =X=
+
+The =X= Window System (=X11=, or simply =X=) is a windowing system for bitmap displays, common on Unix-like operating systems. It provides the basic framework for a GUI environment:
+
+- Drawing
+- Moving windows
+- Interact with mouse and keyboard
+
+
+It's =Client Server= architecture.
+
+Official document is [[https://docs.freebsd.org/en/books/handbook/x11][here]].
+
+
+** Install everything I need
+
+#+BEGIN_SRC bash
+  doas pkg install xorg bspwm sxhkd alacritty feh polybar git bat ripgrep procs htop btop fastfetch fzf fish neovim xdg-utils py39-pynvim alacritty tmux dunst xclip pavucontrol mpv cava dbus lf
+#+END_SRC
+
+
+** Add user into =video= group to enable 3D acceleration when available
+
+Access to =/dev/dri= is needed to allow 3D acceleration on video cards.
+
+#+BEGIN_SRC bash
+    doas pw groupmod video -m wison
+
+    # Confirm
+    groups wison
+    # wison whell video
+#+END_SRC
+
+
+
+** How to trouleshoot the =X= failure
+
+#+BEGIN_SRC bash
+  #
+  # Make sure `X` is not started and remove the Xorg log file
+  #
+  doas rm -rf /var/log/Xorg.0.log*
+
+  #
+  # Relogin and startx again
+  #
+  startx
+#+END_SRC
+
+Now, have a look at the =/var/log/Xorg.0.log= to figure out the error you got:)
+

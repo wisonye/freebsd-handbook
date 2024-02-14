@@ -5,6 +5,12 @@
 ** [[file:chapters/install-gpu-drivers.org][Install GPU drivers]]
 ** [[file:chapters/make-boot-faster.org][Make boot faster]]
 ** =ZFS= - Take a base snapshot before installing anywhere else
+
+#+BEGIN_SRC bash
+  doas zfs snapshot -r zroot@minimal
+#+END_SRC
+
+** Custom kernel
 ** Install =DE (Desktop Environment)= or =WM (Window Manager)=
 *** Install =X=
 *** Install =Hyprland=
