@@ -10,7 +10,7 @@
   doas zfs snapshot -r zroot@minimal
 #+END_SRC
 
-** Custom kernel
+** [[file:chapters/custom-kernel.org][Custom kernel]]
 ** Install =DE (Desktop Environment)= or =WM (Window Manager)=
 *** Install =X=
 *** Install =Hyprland=
