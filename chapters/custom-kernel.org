@@ -1,0 +1,638 @@
+* Custom kernel
+
+Official doc is [[https://docs.freebsd.org/en/books/handbook/kernelconfig/#kernelconfig-custom-kernel][here]]. 
+
+** Custom build kernel offers you the following benefits:
+
+*** Faster boot time
+
+Since the kernel will only probe the hardware on the system, the time it takes the system to boot can decrease.
+
+
+*** Lower memory usage
+
+A custom kernel often uses less memory than the GENERIC kernel by omitting unused features and device drivers.
+
+
+*** Additional hardware support
+
+A custom kernel can add support for devices which are not present in the GENERIC kernel.
+
+
+** Git clone =FreeBSD= src if you don't have it yet in =/usr/src=
+
+#+BEGIN_SRC bash
+  git clone -o freebsd https://git.FreeBSD.org/src.git /usr/src
+#+END_SRC
+
+The =-o= freebsd option specifies the origin; by convention in the FreeBSD documentation, the origin is assumed to be freebsd. Because the initial checkout must download the full branch of the remote repository, it can take a while. Please be patient.
+
+
+If you're in the old version of =/usr/src=, you need pull the latest first:
+
+#+BEGIN_SRC bash
+  cd /usr/src
+  git pull --rebase
+#+END_SRC
+
+
+Initially, the working tree contains source code for the =main= branch, which corresponds to =CURRENT=. If you don't want th latest =current= version, you better switch to =14-STABLE= instead:
+
+#+BEGIN_SRC bash
+  cd /usr/src
+  git checkout stable/14
+#+END_SRC
+
+
+** Make your kernel configuration
+
+Go to =/usr/src/sys/{YOUR_ARCHITECTURE}/conf/= folder, (change the =YOUR_ARCHITECTURE= to your CPU architecture (=amd64= for example).
+
+#+BEGIN_SRC bash
+  #
+  # `MYKERNEL` is the new kernel configuration file, name to whatever your
+  # like, it is a good idea to name it after the machine’s hostname.
+  #
+  cp -rvf GENERIC MYKERNEL
+#+END_SRC
+
+</br>
+
+Then open =MYKERNEL= and comment on all device or subsystem modules that you don't need explicitly.
+
+You need to make sure those device module names or subsystem module names don't exist in the following command output which means you confirm that your hardware doesn't need them:
+
+#+BEGIN_SRC bash
+  dmesg -a | bat
+  bat /var/run/dmesg.boot
+  pciconf  -lv | bat
+#+END_SRC
+
+
+** Make your kernel configuration for current version
+
+When you're running the =CURRENT= version, you will have one more kernel config called =GENERIC-NODEBUG=, you should based on that one to build your own kernel, as it remove all unnecessary debug information in order to build the full-speed kernel!!!
+
+Go to =/usr/src/sys/{YOUR_ARCHITECTURE}/conf/= folder, (change the =YOUR_ARCHITECTURE= to your CPU architecture (=amd64= for example).
+
+
+#+BEGIN_SRC bash
+  #
+  # `GENERIC-NODEBUG-WISON` is the new kernel configuration file, name to whatever your like
+  #
+  cp -rvf GENERIC-NODEBUG GENERIC-NODEBUG-WISON
+#+END_SRC
+
+Then open =GENERIC-NODEBUG-WISON= change the following settings:
+
+- =ident=: value is your kernel name (=GENERIC-NODEBUG-WISON=)
+
+- Add all =noxxxx= you don't need, =xxxx= means the driver name or module name, all supported =no= keywords are list in =man 5 config=
+
+
+For example, here is my =GENERIC-NODEBUG-WISON= settings:
+
+#+BEGIN_SRC bash
+  
+  #
+  # GENERIC-NODEBUG -- WITNESS and INVARIANTS free kernel configuration file
+  #		     for FreeBSD/amd64
+  #
+  # This configuration file removes several debugging options, including
+  # WITNESS and INVARIANTS checking, which are known to have significant
+  # performance impact on running systems.  When benchmarking new features
+  # this kernel should be used instead of the standard GENERIC.
+  # This kernel configuration should never appear outside of the HEAD
+  # of the FreeBSD tree.
+  #
+  # For more information on this file, please read the config(5) manual page,
+  # and/or the handbook section on Kernel Configuration Files:
+  #
+  #    https://docs.freebsd.org/en/books/handbook/kernelconfig/#kernelconfig-config
+  #
+  # The handbook is also available locally in /usr/share/doc/handbook
+  # if you've installed the doc distribution, otherwise always see the
+  # FreeBSD World Wide Web server (https://www.FreeBSD.org/) for the
+  # latest information.
+  #
+  # An exhaustive list of options and more detailed explanations of the
+  # device lines is also present in the ../../conf/NOTES and NOTES files.
+  # If you are in doubt as to the purpose or necessity of a line, check first
+  # in NOTES.
+  #
+  # $FreeBSD$
+
+  include GENERIC
+  include "../../conf/std.nodebug"
+
+  ident   GENERIC-NODEBUG-WISON
+
+  # --------------------------------------------------------------------
+  # I want to disable the following make optinos
+  # --------------------------------------------------------------------
+  makeoptions	DEBUG="" 		# Build kernel with gdb(1) debug symbols
+
+
+  # --------------------------------------------------------------------
+  # I don't need the following modules or drivers
+  # --------------------------------------------------------------------
+
+  # No NFS support
+  nooptions 	NFSCL			# Network Filesystem Client
+  nooptions 	NFSD			# Network Filesystem Server
+  nooptions 	NFSLOCKD		# Network Lock Manager
+  nooptions 	NFS_ROOT		# NFS usable as /, requires NFSCL
+
+  # No ktrace support
+  nooptions 	KTRACE			# ktrace(1) support
+  nooptions 	KDTRACE_FRAME		# Ensure frames are compiled in
+  nooptions 	KDTRACE_HOOKS		# Kernel DTrace hooks
+  nooptions 	KDB			# Enable kernel debugger support.
+  nooptions 	KDB_TRACE		# Print a stack trace for a panic.
+
+  # No full debugger support use (turn off in stable branch):
+  nooptions 	DDB			# Support DDB.
+  nooptions 	GDB			# Support remote GDB.
+  nooptions 	VERBOSE_SYSINIT		# Support debug.verbose_sysinit, off by default
+
+  # ATA controllers
+  nodevice		mvs			# Marvell 88SX50XX/88SX60XX/88SX70XX/SoC SATA
+  nodevice		siis			# SiliconImage SiI3124/SiI3132/SiI3531 SATA
+
+  # SCSI Controllers
+  nodevice		ahc			# AHA2940 and onboard AIC7xxx devices
+  nodevice		ahd			# AHA39320/29320 and onboard AIC79xx devices
+  nodevice		hptiop			# Highpoint RocketRaid 3xxx series
+  nodevice		isp			# Qlogic family
+  nodevice		mpt			# LSI-Logic MPT-Fusion
+  nodevice		mps			# LSI-Logic MPT-Fusion 2
+  nodevice		mpr			# LSI-Logic MPT-Fusion 3
+  nodevice		sym			# NCR/Symbios Logic
+  nodevice		isci			# Intel C600 SAS controller
+  nodevice		ocs_fc			# Emulex FC adapters
+  nodevice		pvscsi			# VMware PVSCSI
+
+  # RAID controllers interfaced to the SCSI subsystem
+  nodevice		arcmsr			# Areca SATA II RAID
+  nodevice		ciss			# Compaq Smart RAID 5*
+  nodevice		ips			# IBM (Adaptec) ServeRAID
+  nodevice		smartpqi		# Microsemi smartpqi driver
+  nodevice		tws			# LSI 3ware 9750 SATA+SAS 6Gb/s RAID controller
+
+  # RAID controllers
+  nodevice		aac			# Adaptec FSA RAID
+  nodevice		aacp			# SCSI passthrough for aac (requires CAM)
+  nodevice		aacraid			# Adaptec by PMC RAID
+  nodevice		ida			# Compaq Smart RAID
+  nodevice		mfi			# LSI MegaRAID SAS
+  nodevice		mlx			# Mylex DAC960 family
+  nodevice		mrsas			# LSI/Avago MegaRAID SAS/SATA, 6Gb/s and 12Gb/s
+  nodevice		pmspcv			# PMC-Sierra SAS/SATA Controller driver
+  #XXX pointer/int warnings
+  nodevice		twe			# 3ware ATA RAID
+
+  # Intel Volume Management Device (VMD) support
+  nodevice		vmd
+
+  # CardBus bridge support
+  nodevice		cbb			# CardBus (yenta) bridge
+  nodevice		cardbus			# CardBus (32-bit) bus
+
+  # Serial (COM) ports
+  nodevice		uart			# Generic UART driver
+
+  # PCI/PCI-X/PCIe Ethernet NICs that use iflib infrastructure
+  nodevice		igc			# Intel I225 2.5G Ethernet
+  nodevice		ix			# Intel PRO/10GbE PCIE PF Ethernet
+  nodevice		ixv			# Intel PRO/10GbE PCIE VF Ethernet
+  nodevice		ixl			# Intel 700 Series Physical Function
+  nodevice		iavf			# Intel Adaptive Virtual Function
+  nodevice		ice			# Intel 800 Series Physical Function
+  nodevice		vmx			# VMware VMXNET3 Ethernet
+  nodevice		axp			# AMD EPYC integrated NIC (requires miibus)
+
+  # PCI Ethernet NICs.
+  nodevice		bxe			# Broadcom NetXtreme II BCM5771X/BCM578XX 10GbE
+  nodevice		le			# AMD Am7900 LANCE and Am79C9xx PCnet
+  nodevice		ti			# Alteon Networks Tigon I/II gigabit Ethernet
+
+  # Nvidia/Mellanox Connect-X 4 and later, Ethernet only
+  #  o requires COMPAT_LINUXKPI and xz(4)
+  #  o mlx5ib requires ibcore infra and is not included by default
+  nodevice		mlx5			# Base driver
+  nodevice		mlxfw			# Firmware update
+  nodevice		mlx5en			# Ethernet driver
+
+  # PCI Ethernet NICs that use the common MII bus controller code.
+  # NOTE: Be sure to keep the 'device miibus' line in order to use these NICs!
+  nodevice		miibus			# MII bus support
+  nodevice		ae			# Attansic/Atheros L2 FastEthernet
+  nodevice		age			# Attansic/Atheros L1 Gigabit Ethernet
+  nodevice		alc			# Atheros AR8131/AR8132 Ethernet
+  nodevice		ale			# Atheros AR8121/AR8113/AR8114 Ethernet
+  nodevice		bce			# Broadcom BCM5706/BCM5708 Gigabit Ethernet
+  nodevice		bfe			# Broadcom BCM440x 10/100 Ethernet
+  nodevice		bge			# Broadcom BCM570xx Gigabit Ethernet
+  nodevice		cas			# Sun Cassini/Cassini+ and NS DP83065 Saturn
+  nodevice		dc			# DEC/Intel 21143 and various workalikes
+  nodevice		et			# Agere ET1310 10/100/Gigabit Ethernet
+  nodevice		fxp			# Intel EtherExpress PRO/100B (82557, 82558)
+  nodevice		gem			# Sun GEM/Sun ERI/Apple GMAC
+  nodevice		jme			# JMicron JMC250 Gigabit/JMC260 Fast Ethernet
+  nodevice		lge			# Level 1 LXT1001 gigabit Ethernet
+  nodevice		msk			# Marvell/SysKonnect Yukon II Gigabit Ethernet
+  nodevice		nfe			# nVidia nForce MCP on-board Ethernet
+  nodevice		nge			# NatSemi DP83820 gigabit Ethernet
+  nodevice		re			# RealTek 8139C+/8169/8169S/8110S
+  nodevice		rl			# RealTek 8129/8139
+  nodevice		sge			# Silicon Integrated Systems SiS190/191
+  nodevice		sis			# Silicon Integrated Systems SiS 900/SiS 7016
+  nodevice		sk			# SysKonnect SK-984x & SK-982x gigabit Ethernet
+  nodevice		ste			# Sundance ST201 (D-Link DFE-550TX)
+  nodevice		stge			# Sundance/Tamarack TC9021 gigabit Ethernet
+  nodevice		vge			# VIA VT612x gigabit Ethernet
+  nodevice		vr			# VIA Rhine, Rhine II
+  nodevice		xl			# 3Com 3c90x (``Boomerang'', ``Cyclone'')
+
+  # Wireless NIC cards
+  nodevice		wlan			# 802.11 support
+  nooptions 	IEEE80211_DEBUG		# enable debug msgs
+  nooptions 	IEEE80211_SUPPORT_MESH	# enable 802.11s draft support
+  nodevice		wlan_wep		# 802.11 WEP support
+  nodevice		wlan_ccmp		# 802.11 CCMP support
+  nodevice		wlan_tkip		# 802.11 TKIP support
+  nodevice		wlan_amrr		# AMRR transmit rate control algorithm
+  nodevice		ath			# Atheros NICs
+  nodevice		ath_pci			# Atheros pci/cardbus glue
+  nodevice		ath_hal			# pci/cardbus chip support
+  nooptions 	AH_AR5416_INTERRUPT_MITIGATION # AR5416 interrupt mitigation
+  nooptions 	ATH_ENABLE_11N		# Enable 802.11n support for AR5416 and later
+  nodevice		ath_rate_sample		# SampleRate tx rate control for ath
+  nodevice		ipw			# Intel 2100 wireless NICs.
+  nodevice		iwi			# Intel 2200BG/2225BG/2915ABG wireless NICs.
+  nodevice		iwn			# Intel 4965/1000/5000/6000 wireless NICs.
+  nodevice		malo			# Marvell Libertas wireless NICs.
+  nodevice		mwl			# Marvell 88W8363 802.11n wireless NICs.
+  nodevice		ral			# Ralink Technology RT2500 wireless NICs.
+  nodevice		wpi			# Intel 3945ABG wireless NICs.
+
+  # MMC/SD
+  nodevice		mmc			# MMC/SD bus
+  nodevice		mmcsd			# MMC/SD memory card
+  nodevice		sdhci			# Generic PCI SD Host Controller
+  nodevice		rtsx			# Realtek SD card reader
+
+  # Xen HVM Guest Optimizations
+  # NOTE: XENHVM depends on xenpci and xentimer.
+  # They must be added or removed together.
+  nooptions 	XENHVM			# Xen HVM kernel infrastructure
+  nodevice		xenpci			# Xen HVM Hypervisor services driver
+  nodevice		xentimer		# Xen x86 PV timer device
+#+END_SRC
+
+
+Basically, you just open =GENERIC= configuration file then copy and paste all drivers or modules you don't want to this file and add the =no= in front of each lines:)
+
+
+*** One more thing before compile your own current kernel:
+
+Tips come from [here](https://klarasystems.com/articles/evaluating-freebsd-current-for-production-use/)
+
+#+BEGIN_SRC bash
+  cat /etc/src.conf
+
+  # WITH_MALLOC_PRODUCTION="YES"
+  # WITHOUT_LLVM_ASSERTIONS="YES"
+#+END_SRC
+
+If want to totally disable =ipv6=, try to add the following as well:
+
+#+BEGIN_SRC bash
+  # WITHOUT_INET6="YES"
+  # WITHOUT_INET6_SUPPORT="YES"
+#+END_SRC
+
+
+
+** Before building your own kernel
+
+By default, when a custom kernel is compiled, all kernel modules are rebuilt. that's talking aroud =15 ~ 30 mins=. So you should put the following settings to =/etc/make.conf= to exclude from the build process:
+
+#+BEGIN_SRC bash
+  WITHOUT_MODULES = module1 module2 ...
+#+END_SRC
+
+
+Here is the trick to build the =WITHOUT_MODULES= line:
+
+*** Rewrite the prefix part to =/etc/make.conf=:
+
+#+BEGIN_SRC bash
+  echo "WITHOUT_MODULES = " > /etc/make.conf
+#+END_SRC
+
+
+*** Run the following command to extract all module/driver names from your
+own kernel configuration file and append to `/etc/make.conf`:
+
+#+BEGIN_SRC bash
+  cat /usr/src/sys/amd64/conf/GENERIC-NODEBUG-WISON | grep "nodevice" | awk '{print $2}' | tr '\n' ' ' >> /etc/make.conf
+#+END_SRC
+
+
+Then open =/etc/make.conf= and remove the new line (press =<C-j>= in =vi=). Finally, this is what the =/etc/make.conf= looks like:
+
+#+BEGIN_SRC bash
+  cat /etc/make.conf
+
+  # WITHOUT_MODULES = mvs siis ahc ahd hptiop isp mpt mps mpr sym isci ocs_fc pvscsi arcmsr ciss ips smartpqi tws aac aacp aacraid ida mfi mlx mrsas pmspcv twe vmd cbb cardbus uart igc ix ixv ixl iavf ice vmx axp bxe le ti mlx5 mlxfw mlx5en miibus ae age alc ale bce bfe bge cas dc et fxp gem jme lge msk nfe nge re rl sge sis sk ste stge vge vr xl wlan wlan_wep wlan_ccmp wlan_tkip wlan_amrr ath ath_pci ath_hal ath_rate_sample ipw iwi iwn malo mwl ral wpi mmc mmcsd sdhci rtsx xenpci xentimer
+#+END_SRC
+
+
+*** Enable boot profiling
+
+If you want to enable boot profiling and follow up the analysis steps in the later chapter, then you have to enable the following option in your kernel configuration file:
+
+#+BEGIN_SRC bash
+  # Support since FreeBSD 12-STABLE
+  options TSLOG
+#+END_SRC
+
+
+** Build your own kernel
+
+Make sure try use =-j= flag at the first case, if it compiles fail (related to the =-j=, the fallback to not use =-j=), as that should save a lot of compile time!!!
+
+How to find out the best =-j= settings:
+
+#+BEGIN_SRC bash
+  dmesg | rg "Multiprocessor System Detected"
+  # FreeBSD/SMP: Multiprocessor System Detected: 16 CPUs
+#+END_SRC
+
+That means =-j 16=, or actually you can use the following comand:
+
+#+BEGIN_SRC bash
+  make -j (sysctl hw.ncpu | cut -d: -f2)
+#+END_SRC
+
+
+Right now, let's build the own kernel:
+
+
+*** FreeBSD release version
+
+Make sure run =cd /usr/src= before building your kernel!!!
+
+#+BEGIN_SRC bash
+  time make -j (sysctl hw.ncpu | cut -d: -f2) buildkernel KERNCONF=MYKERNEL
+
+  # ..... (ignore all compiler output)
+  #
+  # ld -m elf_x86_64_fbsd -d -warn-common --build-id=sha1 -T /usr/src/sys/conf/ldscript.kmod.amd64 -r -d  -o zlib.ko zcalloc.o zlib_mod.o adler32.o compress.o crc32.o deflate.o inffast.o inflate.o inftrees.o trees.o uncompr.o zutil.o
+  # :> export_syms
+  # awk -f /usr/src/sys/conf/kmod_syms.awk zlib.ko  export_syms | xargs -J% objcopy % zlib.ko
+  # objcopy --strip-debug zlib.ko
+  # --------------------------------------------------------------
+  # >>> Kernel build for MYKERNEL completed on Tue Dec 27 16:25:50 NZDT 2022
+  # --------------------------------------------------------------
+  # >>> Kernel(s)  MYKERNEL built in 994 seconds, ncpu: 6
+  # --------------------------------------------------------------
+  # 
+  # ________________________________________________________
+  # Executed in   16.57 mins    fish           external
+  #    usr time  894.40 secs  332.00 micros  894.40 secs
+  #    sys time   86.23 secs  378.00 micros   86.23 secs
+#+END_SRC
+
+
+After that, install your kernel:
+
+This command will copy the new kernel to =/boot/kernel/kernel= and save the old kernel to =/boot/kernel.old/kernel=:
+
+#+BEGIN_SRC bash
+  make installkernel KERNCONF=MYKERNEL
+
+  # ..... (ingore install process output)
+  #
+  # install -T release -o root -g wheel -m 555   zfs.ko /boot/kernel/
+  # ===> zlib (install)
+  # install -T release -o root -g wheel -m 555   zlib.ko /boot/kernel/
+  # kldxref /boot/kernel
+  # --------------------------------------------------------------
+  # >>> Installing kernel MYKERNEL completed on Tue Dec 27 16:47:05 NZDT 2022
+  # --------------------------------------------------------------
+#+END_SRC
+
+Now, reboot to see the changes:)
+
+
+*** FreeBSD current version
+
+Make sure run =cd /usr/src= before building your kernel!!!
+
+#+BEGIN_SRC bash
+  time make -j (sysctl hw.ncpu | cut -d: -f2) buildkernel KERNCONF=GENERIC-NODEBUG-WISON
+
+  #       234.54 real      3388.13 user       204.88 sys
+  # --------------------------------------------------------------
+  # >>> Kernel build for GENERIC-NODEBUG-WISON-2 completed on Thu Jan  5 08:50:00 NZDT 2023
+  # --------------------------------------------------------------
+  # >>> Kernel(s)  GENERIC-NODEBUG-WISON-2 built in 238 seconds, ncpu: 16, make -j16
+  # --------------------------------------------------------------
+  # 
+  # ________________________________________________________
+  # Executed in  237.35 secs    fish           external
+  #    usr time   56.79 mins  540.00 micros   56.79 mins
+  #    sys time    3.62 mins  406.00 micros    3.62 mins
+#+END_SRC
+
+
+And here is differences if you don't apply =-j (sysctl hw.ncpu | cut -d: -f2)= to =make=, it's huge differences for the entire compile time!!!
+
+#+BEGIN_SRC bash
+  time make buildkernel KERNCONF=GENERIC-NODEBUG-WISON
+
+  # ..... (ignore all compiler output)
+  #
+  #      1509.31 real      1421.45 user       101.77 sys
+  # --------------------------------------------------------------
+  # >>> Kernel build for GENERIC-NODEBUG-WISON completed on Wed Dec 28 15:00:16 NZDT 2022
+  # --------------------------------------------------------------
+  # >>> Kernel(s)  GENERIC-NODEBUG-WISON built in 1522 seconds, ncpu: 6
+  # --------------------------------------------------------------
+  #      1522.34 real      1431.02 user       105.01 sys
+#+END_SRC
+
+After that, install your kernel:
+
+This command will copy the new kernel to =/boot/kernel/kernel= and save the old kernel to =/boot/kernel.old/kernel=:
+
+#+BEGIN_SRC bash
+  time make installkernel KERNCONF=GENERIC-NODEBUG-WISON
+
+  # ..... (ingore install process output)
+  #
+  # ===> zfs (install)
+  # install -T release -o root -g wheel -m 555   zfs.ko /boot/kernel/
+  # install -T dbg -o root -g wheel -m 555   zfs.ko.debug /usr/lib/debug/boot/kernel/
+  # ===> zlib (install)
+  # install -T release -o root -g wheel -m 555   zlib.ko /boot/kernel/
+  # install -T dbg -o root -g wheel -m 555   zlib.ko.debug /usr/lib/debug/boot/kernel/
+  # kldxref /boot/kernel
+  # --------------------------------------------------------------
+  # >>> Installing kernel GENERIC-NODEBUG-WISON completed on Wed Dec 28 15:05:52 NZDT 2022
+  # --------------------------------------------------------------
+  #        13.37 real         8.93 user         4.12 sys
+#+END_SRC
+
+Now, reboot to see the changes:)
+
+
+** Show differences
+
+*** FreeBSD release version
+
+**** Verion with =MYKERNEL= identifier.
+
+#+BEGIN_SRC bash
+  uname -a
+  # FreeBSD my-bsd 13.1-RELEASE-p5 FreeBSD 13.1-RELEASE-p5 MYKERNEL amd64
+#+END_SRC
+
+
+**** Kernel size is smaller
+
+***** Kernel folder size
+
+#+BEGIN_SRC bash
+  #
+  # New `MYKNERNEL`
+  #
+  /usr/bin/du -ch -d1 /boot/kernel
+  #74M    /boot/kernel
+  #74M    total
+
+
+  #
+  # Old kernel
+  #
+  /usr/bin/du -ch -d1 /boot/kernel.old
+  #97M    /boot/kernel.old
+  #97M    total
+#+END_SRC
+
+
+***** Kernel file size
+
+#+BEGIN_SRC bash
+  #
+  # New `MYKNERNEL`
+  #
+  ls -lht /boot/kernel/kernel
+  #-r-xr-xr-x  1 root  wheel    13M Dec 27 16:13 /boot/kernel/kernel*
+
+  #
+  # Old kernel
+  #
+  ls -lht /boot/kernel.old/kernel
+  #-r-xr-xr-x  1 root  wheel    28M Dec  8 14:43 /boot/kernel.old/kernel*
+#+END_SRC
+
+
+*** FreeBSD current version
+
+**** Verion with `MYKERNEL` identifier.
+
+#+BEGIN_SRC bash
+  uname -v
+
+  # FreeBSD 14.0-CURRENT #0: Wed Dec 28 14:41:10 NZDT 2022     root@freebsd-14:/usr/obj/usr/src/amd64.amd64/sys/GENERIC-NODEBUG-WISON
+#+END_SRC
+
+
+**** Kernel size is smaller
+
+***** Kernel folder size
+
+#+BEGIN_SRC bash
+  # GENERIC-NODEBUG-WISON
+  du -ch -d1 /boot/kernel
+  # 82M    /boot/kernel
+  # 82M    total
+
+  # GENERIC-NODEBUG
+  du -ch -d1 /boot/kernel.old
+  # 102M    /boot/kernel.old
+  # 102M    total
+#+END_SRC
+
+
+***** Kernel file size
+
+#+BEGIN_SRC bash
+  # GENERIC-NODEBUG-WISON
+  du -ch -d1 /boot/kernel/kernel
+  # 7.6M    /boot/kernel/kernel
+  # 7.6M    total
+
+  # GENERIC-NODEBUG
+  du -ch -d1 /boot/kernel.old/kernel
+  # 17M    /boot/kernel.old/kernel
+  # 17M    total
+#+END_SRC
+
+
+** Remove compiled obj Files
+
+Clean build files:
+
+#+BEGIN_SRC bash
+  #
+  # Run `man build` to find support clean actions
+  #
+  cd /usr/src
+  time make clean cleandepend cleandir
+  rm -rf /usr/obj/usr/src/amd64.amd64/
+#+END_SRC
+
+
+How many spaces have been saved?
+
+#+BEGIN_SRC bash
+  #
+  # Before `make clean`
+  #
+  du -ch -d1 /usr/obj/
+  # 2.2G    /usr/obj/usr
+  # 2.2G    /usr/obj/
+  # 2.2G    total
+
+
+  #
+  # After `make clean`
+  #
+  du -ch -d1 /usr/obj/
+  # 1.0K    /usr/obj/usr
+  # 1.5K    /usr/obj/
+  # 1.5K    total
+#+END_SRC
+
+
+** Optional, run boot profiling
+
+Reboot and run the following commands:
+
+#+BEGIN_SRC bash
+  cd ~/temp
+  git clone https://github.com/cperciva/freebsd-boot-profiling.git
+  cd freebsd-boot-profiling
+
+  # Generate the flame graphic
+  sh mkflame.sh > tslog.svg
+
+  # (Optional) To get a list of the top 10 stack leaves:
+  sh tslog.sh > ts.log
+  ./stackcollapse-tslog.pl < ts.log | sh supercollapse.sh | head
+#+END_SRC
+
