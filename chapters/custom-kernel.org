@@ -53,11 +53,20 @@ Go to =/usr/src/sys/{YOUR_ARCHITECTURE}/conf/= folder, (change the =YOUR_ARCHITE
   # `MYKERNEL` is the new kernel configuration file, name to whatever your
   # like, it is a good idea to name it after the machine’s hostname.
   #
-  cp -rvf GENERIC MYKERNEL
+  cp -rvf GENERIC PARALLELS_VM
 #+END_SRC
 
 
-Then open =MYKERNEL= and comment on all device or subsystem modules that you don't need explicitly.
+So here are the things you need to do:
+
+*** Change =ident= to your new kernel name (=PARALLELS_VM= in this case)
+
+#+BEGIN_SRC bash
+  ident		PARALLELS_VM
+#+END_SRC
+
+
+*** Then open =PARALLELS_VM= and comment on all device or subsystem modules that you don't need explicitly.
 
 You need to make sure those device module names or subsystem module names don't exist in the following command output which means you confirm that your hardware doesn't need them:
 
@@ -67,8 +76,9 @@ You need to make sure those device module names or subsystem module names don't 
   pciconf  -lv | bat
 #+END_SRC
 
+*** My =PARALLELS_VM=
 
-Here is my =PARALLELS_VM= configuration sample:
+Here is my =PARALLELS_VM= configuration:
 
 #+BEGIN_SRC bash
   #
@@ -743,6 +753,7 @@ By default, when a custom kernel is compiled, all kernel modules are rebuilt. th
 
 Here is the trick to build the =WITHOUT_MODULES= line:
 
+
 *** Rewrite the prefix part to =/etc/make.conf=:
 
 #+BEGIN_SRC bash
@@ -754,11 +765,11 @@ Here is the trick to build the =WITHOUT_MODULES= line:
 own kernel configuration file and append to `/etc/make.conf`:
 
 #+BEGIN_SRC bash
-  cat /usr/src/sys/amd64/conf/GENERIC-NODEBUG-WISON | grep "nodevice" | awk '{print $2}' | tr '\n' ' ' >> /etc/make.conf
+  cat /usr/src/sys/amd64/conf/PARALLELS_VM | grep "nodevice" | awk '{print $2}' | tr '\n' ' ' >> /etc/make.conf
 #+END_SRC
 
 
-Then open =/etc/make.conf= and remove the new line (press =<C-j>= in =vi=). Finally, this is what the =/etc/make.conf= looks like:
+Then open =/etc/make.conf= and remove the new line. Finally, this is what the =/etc/make.conf= looks like:
 
 #+BEGIN_SRC bash
   cat /etc/make.conf
@@ -801,26 +812,30 @@ Right now, let's build the own kernel:
 *** FreeBSD release version
 
 Make sure run =cd /usr/src= before building your kernel!!!
+Make sure run =cd /usr/src= before building your kernel!!!
+Make sure run =cd /usr/src= before building your kernel!!!
 
 #+BEGIN_SRC bash
-  time make -j (sysctl hw.ncpu | cut -d: -f2) buildkernel KERNCONF=MYKERNEL
+    time make -j (sysctl hw.ncpu | cut -d: -f2) buildkernel KERNCONF=PARALLELS_VM
 
-  # ..... (ignore all compiler output)
-  #
-  # ld -m elf_x86_64_fbsd -d -warn-common --build-id=sha1 -T /usr/src/sys/conf/ldscript.kmod.amd64 -r -d  -o zlib.ko zcalloc.o zlib_mod.o adler32.o compress.o crc32.o deflate.o inffast.o inflate.o inftrees.o trees.o uncompr.o zutil.o
-  # :> export_syms
-  # awk -f /usr/src/sys/conf/kmod_syms.awk zlib.ko  export_syms | xargs -J% objcopy % zlib.ko
-  # objcopy --strip-debug zlib.ko
-  # --------------------------------------------------------------
-  # >>> Kernel build for MYKERNEL completed on Tue Dec 27 16:25:50 NZDT 2022
-  # --------------------------------------------------------------
-  # >>> Kernel(s)  MYKERNEL built in 994 seconds, ncpu: 6
-  # --------------------------------------------------------------
-  # 
-  # ________________________________________________________
-  # Executed in   16.57 mins    fish           external
-  #    usr time  894.40 secs  332.00 micros  894.40 secs
-  #    sys time   86.23 secs  378.00 micros   86.23 secs
+    # ..... (ignore all compiler output)
+    #
+    # --- kernel ---
+    # linking kernel
+    # objcopy --strip-debug kernel
+    #       text      data       bss        dec        hex   filename
+    #   10018288   1081742   3104768   14204798   0xd8bf7e   kernel
+    #       195.20 real      1028.57 user        95.61 sys
+    # --------------------------------------------------------------
+    # >>> Kernel build for PARALLELS_VM completed on Thu Feb 15 12:27:20 NZDT 2024
+    # --------------------------------------------------------------
+    # >>> Kernel(s)  PARALLELS_VM built in 198 seconds, ncpu: 6, make -j6
+    # --------------------------------------------------------------
+
+    # ________________________________________________________
+    # Executed in  198.03 secs    fish           external
+    #    usr time   17.27 mins  436.00 micros   17.27 mins
+    #    sys time    1.72 mins  519.00 micros    1.72 mins
 #+END_SRC
 
 
@@ -829,16 +844,13 @@ After that, install your kernel:
 This command will copy the new kernel to =/boot/kernel/kernel= and save the old kernel to =/boot/kernel.old/kernel=:
 
 #+BEGIN_SRC bash
-  make installkernel KERNCONF=MYKERNEL
+  make installkernel KERNCONF=PARALLELS_VM
 
   # ..... (ingore install process output)
   #
-  # install -T release -o root -g wheel -m 555   zfs.ko /boot/kernel/
-  # ===> zlib (install)
-  # install -T release -o root -g wheel -m 555   zlib.ko /boot/kernel/
   # kldxref /boot/kernel
   # --------------------------------------------------------------
-  # >>> Installing kernel MYKERNEL completed on Tue Dec 27 16:47:05 NZDT 2022
+  # >>> Installing kernel PARALLELS_VM completed on Thu Feb 15 12:29:28 NZDT 2024
   # --------------------------------------------------------------
 #+END_SRC
 
@@ -909,13 +921,14 @@ Now, reboot to see the changes:)
 
 ** Show differences
 
+
 *** FreeBSD release version
 
 **** Verion with =MYKERNEL= identifier.
 
 #+BEGIN_SRC bash
   uname -a
-  # FreeBSD my-bsd 13.1-RELEASE-p5 FreeBSD 13.1-RELEASE-p5 MYKERNEL amd64
+  # FreeBSD my-freebsd 14.0-RELEASE-p4 FreeBSD 14.0-RELEASE-p4 #0 : Thu Feb 15 12:27:20 NZDT 2024     root@my-freebsd:/usr/obj/usr/src/amd64.amd64/sys/PARALLELS_VM amd64
 #+END_SRC
 
 
@@ -925,19 +938,19 @@ Now, reboot to see the changes:)
 
 #+BEGIN_SRC bash
   #
-  # New `MYKNERNEL`
+  # New `PARALLELS_VM`
   #
   /usr/bin/du -ch -d1 /boot/kernel
-  #74M    /boot/kernel
-  #74M    total
+  #76M    /boot/kernel
+  #76M    total
 
 
   #
   # Old kernel
   #
   /usr/bin/du -ch -d1 /boot/kernel.old
-  #97M    /boot/kernel.old
-  #97M    total
+  #101M    /boot/kernel.old
+  #101M    total
 #+END_SRC
 
 
@@ -945,16 +958,16 @@ Now, reboot to see the changes:)
 
 #+BEGIN_SRC bash
   #
-  # New `MYKNERNEL`
+  # New `PARALLELS_VM`
   #
   ls -lht /boot/kernel/kernel
-  #-r-xr-xr-x  1 root  wheel    13M Dec 27 16:13 /boot/kernel/kernel*
+  # -r-xr-xr-x  1 root wheel   13M Feb 15 12:27 /boot/kernel/kernel*
 
   #
   # Old kernel
   #
   ls -lht /boot/kernel.old/kernel
-  #-r-xr-xr-x  1 root  wheel    28M Dec  8 14:43 /boot/kernel.old/kernel*
+  # -r-xr-xr-x  1 root wheel   26M Feb 10 11:42 /boot/kernel.old/kernel*
 #+END_SRC
 
 
@@ -1021,7 +1034,7 @@ How many spaces have been saved?
   #
   # Before `make clean`
   #
-  du -ch -d1 /usr/obj/
+  /usr/bin/du -ch -d1 /usr/obj/
   # 2.2G    /usr/obj/usr
   # 2.2G    /usr/obj/
   # 2.2G    total
@@ -1030,7 +1043,7 @@ How many spaces have been saved?
   #
   # After `make clean`
   #
-  du -ch -d1 /usr/obj/
+  /usr/bin/du -ch -d1 /usr/obj/
   # 1.0K    /usr/obj/usr
   # 1.5K    /usr/obj/
   # 1.5K    total

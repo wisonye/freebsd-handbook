@@ -44,6 +44,7 @@ And then add the following settings to ~/etc/rc.conf~ to load GPU driver module:
 
 ** Optionally, install =drm_info= to print the device info
 
+
 ** Paralles Desktop GPU issue
 
 If you run =dmesg -a= and search for =vga=, then you should be able to the following logs:
@@ -94,4 +95,4 @@ But =FreeBSD 14= does have the =virtio-gpu= driver, if you run ~man virtio-gpu~,
 #+END_SRC
 
 
-It seems you can build the custom kernel to fix this rather than fallback to use =Frame Buffer= driver (=x11-drivers/xf86-video-scfb=)???:)
+But after I rebuilt my custom kernel (=PARALLELS_VM=) with the =virtio_gpu= driver, it still doesn't work. =FreeBSD= still load the =vga= driver for the =pci0= deivce (~vgapci0@pci0~) rather than the =virtio_gpu= driver!!!
