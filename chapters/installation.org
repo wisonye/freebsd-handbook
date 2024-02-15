@@ -91,6 +91,11 @@ The installation program does not check for adequate disk space. Select this opt
 =tests= - FreeBSD Test Suite.
 
 
+*** WIFI for =th80=
+
+Change =Regdomain= to =APAC2 APAC=, then select =NZ=
+
+
 *** System Configuration
 
 [x] sshd
