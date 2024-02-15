@@ -1,0 +1,157 @@
+* Fix WIFI
+
+** Print out your WIFI chipset driver/model
+
+#+BEGIN_SRC bash
+  sysctl net.wlan.devices
+
+  # net.wlan.devices: iwlwifi0
+#+END_SRC
+
+That means =iwlwifi0= is the value your wanted.
+
+
+** Generate the =/etc/wpa_supplicant.conf=
+
+Run the following command to create =/etc/wpa_supplicant.conf=:
+
+#+BEGIN_SRC bash
+  wpa_passphrase YOUR_SSID YOUR_WIFI_PASSWORD > /etc/wpa_supplicant.conf
+#+END_SRC
+
+
+So, it should look like this:
+
+#+BEGIN_SRC bash
+  network={
+      scan_ssid=1
+      ssid="YOUR_SSID"
+      psk=YOUR_ENCRYPTED_WIFI_PASSWORD
+  }
+#+END_SRC
+
+Make sure put the =scan_ssid=1= there if you're using a hidden SSID!!!
+
+
+** Add wireless card settings to `/etc/rc.conf`
+
+#+BEGIN_SRC bash
+  wlans_iwlwifi0="wlan0"
+  ifconfig_wlan0="country NZ WPA SYNCDHCP"
+#+END_SRC
+
+
+Pay attentions:
+
+1. ~wlans_XXXX="wlan0"~
+
+    That =XXXX= comes from the output of =sysctl net.wlan.devices=!!!
+
+
+2. That =country XX= is the most important setting, make sure to change to your local country code which defines in =/etc/regdomain.xml=!!! It won't work if you didn't set it or set to a wrong country code.
+
+
+** For =minisforum TH80=
+
+This mini pc use the =iwlwifi= Intel WIFI driver, here is the =man iwlwifi= information:
+
+#+BEGIN_SRC text
+  
+  Name
+          iwlwifi – Intel IEEE 802.11a/b/g/n/ac/ax wireless network driver
+
+  SYNOPSIS
+          The driver will auto-load without any user interaction using devmatch(8)
+          if enabled in rc.conf(5).
+
+          Only if auto-loading is explicitly disabled, place the following lines in
+          rc.conf(5) to manually load the driver as a module at boot time:
+
+              kld_list="${kld_list} if_iwlwifi"
+
+          The driver should automatically load any iwlwififw(4) firmware needed for
+          the particular chipset.
+
+          It is discouraged to load the driver from loader(8).
+#+END_SRC
+
+
+As it said =if_iwlwifi= driver will auto-load, that's why you don't need to add it to =/etc/rc.conf= explicitly if you've already added wireless card settings to =/etc/rc.conf=.
+
+You can run the following command to confirm it has been loaded or not:
+
+#+BEGIN_SRC bash
+  kldstat | rg iwl
+
+  # 12    1 0xffffffff84d3f000    87190 if_iwlwifi.ko
+#+END_SRC
+
+
+Here is my =TH80= wireless card =ifconfig= output:
+
+#+BEGIN_SRC bash
+  wlan0: flags=8843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST> metric 0 mtu 1500
+          ether a0:80:69:f4:cd:1a
+          inet 192.168.1.190 netmask 0xffffff00 broadcast 192.168.1.255
+          groups: wlan pfnic
+          ssid SSID_HERE channel 52 (5260 MHz 11a) bssid 34:58:40:ca:f8:bc
+          regdomain APAC country NZ authmode WPA2/802.11i privacy ON
+          deftxkey UNDEF AES-CCM 2:128-bit txpower 23 bmiss 7 mcastrate 6
+          mgmtrate 6 scanvalid 60 wme roaming MANUAL
+          parent interface: iwlwifi0
+          media: IEEE 802.11 Wireless Ethernet OFDM/54Mbps mode 11a
+          status: associated
+          nd6 options=29<PERFORMNUD,IFDISABLED,AUTO_LINKLOCAL>
+#+END_SRC
+
+
+Wireless card model is `Intel AX210NGW` and use `iwlwifi` driver, but the
+current driver has a few problems:
+
+** Keep printing out =No beacon heard and the session protection is over already...= on the first connection when you boot the PC:
+
+#+BEGIN_SRC bash
+  iwlwifi0: No beacon heard and the session protection is over already...
+  wlan0: link state changed to DOWN
+  wlan0 link state up -> down
+  wlan0: link state changed to UP
+  DHCPDISCOVER on wlan0 to 255.255.255.255 port 67 interval 5
+  wlan0 link state down -> up
+  DHCPDISCOVER on wlan0 to 255.255.255.255 port 67 interval 6
+  iwlwifi0: No beacon heard and the session protection is over already...
+  wlan0: link state changed to DOWN
+  wlan0 link state up -> down
+  wlan0: link state changed to UP
+  wlan0 link state down -> up
+  DHCPDISCOVER on wlan0 to 255.255.255.255 port 67 interval 3
+  iwlwifi0: No beacon heard and the session protection is over already...
+  wlan0: link state changed to DOWN
+#+END_SRC
+
+And it repeats over and over again until it connects successfully...
+
+
+There is NO official fix yet, the info I found in this issue [[https://bugzilla.kernel.org/show_bug.cgi?id=203709#c304][comment 304]]
+
+The temporary workaround is that:
+
+- Set the =5G= channel to a fixed channel, like =52= I'm using
+
+- Assigned the static DHCP to the card's MAC address
+
+So, it seems work very well so far:
+
+#+BEGIN_SRC bash
+  ssid SSID_HERE channel 52 (5260 MHz 11a) bssid 34:58:40:ca:f8:bc
+  regdomain APAC country NZ authmode WPA2/802.11i privacy ON
+#+END_SRC
+
+
+*** The Bluetooth functionality doesn't work at all
+
+That's because this [[https://cgit.freebsd.org/src/commit/?=id=d74c589ead91118a46370edc30f10e7d65ed2636][commit]] 
+
+That's saying =Intel AX201NGW= bluetooth dev just ignore in the following source code:
+
+=/sys/netgraph/bluetooth/drivers/ubt/ng_ubt.c=
+=/sys/netgraph/bluetooth/drivers/ubt/ng_ubt_intel.c=
