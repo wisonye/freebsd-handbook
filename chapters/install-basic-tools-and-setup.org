@@ -1,0 +1,64 @@
+* Install basic tools and setup
+
+** Install everything I need
+
+#+BEGIN_SRC bash
+  doas pkg install git git-delta bat ripgrep procs htop btop fastfetch fzf fish neovim py39-pynvim tmux lf
+#+END_SRC
+
+
+** Change =fish= as default shell
+
+#+BEGIN_SRC bash
+  chsh -s /usr/local/bin/fish
+#+END_SRC
+
+Relogin to take effect.
+
+
+** Create and copy GIT SSH key
+
+#+BEGIN_SRC bash
+  ssh-keygen -t ed25519 -C "YOUR_EMAIL_HERE"
+
+  # If you're using `Fish` shell, then better change to `bash` before you run
+  # this command:
+  #
+  # bash
+  eval "$(ssh-agent -s)"
+  ssh-add ~/.ssh/id_ed25519
+
+  #
+  # Then ssh into this machine, cat the pub key and create SSH key on Github settings
+  #
+  # xclip -selection clipboard < ~/.ssh/id_ed25519.pub
+#+END_SRC
+
+
+** Setup git
+
+#+BEGIN_SRC bash
+  git config --global user.name "YOUR_PREFFERED_USER_NAME_HERE"
+  git config --global user.email "YOUR_EMAIL_HERE"
+
+  git config --global pull.rebase false
+  git config --global core.pager delta
+  git config --global interactive.diffFilter "delta --color-only"
+  git config --global delta.navigate true
+  git config --global delta.light false
+  git config --global delta.line-numbers true
+  git config --global delta.side-by-side true
+  git config --global delta.show-syntax-themes true
+  git config --global merge.conflictstyle diff3
+  git config --global diff.colorMoved default
+#+END_SRC
+
+
+** Install =Rust= when needed
+
+#+BEGIN_SRC bash
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+#+END_SRC
+
+Then relogin to take effects.
+

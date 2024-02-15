@@ -11,7 +11,52 @@
 That means =iwlwifi0= is the value your wanted.
 
 
-** Generate the =/etc/wpa_supplicant.conf=
+** Change or generate =/etc/wpa_supplicant.conf=
+
+*** If you configure WIFI during installing FreeBSD
+
+- =/etc/rc.conf=
+
+  You should see the following (WIFI related) settings insdie =/etc/rc.conf=:
+
+  #+BEGIN_SRC bash
+    wlans_iwlwifi0="wlan0"
+    ifconfig_wlan0="WPA DHCP"
+    create_args_wlan0="country NZ regdomain APAC2"
+  #+END_SRC
+
+
+- =/etc/wpa_supplicant.conf=
+
+  You should see the following (WIFI related) settings insdie =/etc/rc.conf=:
+
+  #+BEGIN_SRC bash
+    ctrl_interface=/var/run/wpa_supplicant
+    eapol_version=2
+    ap_scan=1
+    fast_reauth=1
+
+    network={
+            ssid="YOUR_SSID_HERE"
+            scan_ssid=0
+            psk="YOUR_PASSWORD_HERE"
+            priority=5
+    }
+    network={
+            priority=0
+            key_mgmt=NONE
+    }
+  #+END_SRC
+
+  Make sure to change the =scan_ssid=1= if you're using a hidden SSID!!!
+  Make sure to change the =scan_ssid=1= if you're using a hidden SSID!!!
+  Make sure to change the =scan_ssid=1= if you're using a hidden SSID!!!
+
+
+
+*** If you skip WIFI during installing FreeBSD
+
+**** Generate the =/etc/wpa_supplicant.conf=
 
 Run the following command to create =/etc/wpa_supplicant.conf=:
 
@@ -33,11 +78,12 @@ So, it should look like this:
 Make sure put the =scan_ssid=1= there if you're using a hidden SSID!!!
 
 
-** Add wireless card settings to `/etc/rc.conf`
+**** Add wireless card settings to `/etc/rc.conf`
 
 #+BEGIN_SRC bash
   wlans_iwlwifi0="wlan0"
-  ifconfig_wlan0="country NZ WPA SYNCDHCP"
+  ifconfig_wlan0="WPA DHCP"
+  create_args_wlan0="country NZ regdomain APAC2"
 #+END_SRC
 
 
@@ -48,7 +94,7 @@ Pay attentions:
     That =XXXX= comes from the output of =sysctl net.wlan.devices=!!!
 
 
-2. That =country XX= is the most important setting, make sure to change to your local country code which defines in =/etc/regdomain.xml=!!! It won't work if you didn't set it or set to a wrong country code.
+2. That =country XX= is the most important setting, make sure to change to your local country code which defines in =/etc/regdomain.xml=!!! It won't work if missing the correct country code.
 
 
 ** For =minisforum TH80=
@@ -108,7 +154,7 @@ Here is my =TH80= wireless card =ifconfig= output:
 Wireless card model is `Intel AX210NGW` and use `iwlwifi` driver, but the
 current driver has a few problems:
 
-** Keep printing out =No beacon heard and the session protection is over already...= on the first connection when you boot the PC:
+*** Keep printing out =No beacon heard and the session protection is over already...= on the first connection when you boot the PC:
 
 #+BEGIN_SRC bash
   iwlwifi0: No beacon heard and the session protection is over already...
