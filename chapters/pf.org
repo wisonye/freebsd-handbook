@@ -1,0 +1,238 @@
+* PF(Packets Filter)
+
+** Enable =PF=
+
+#+BEGIN_SRC bash
+  # Load `pf` module
+  doas sysrc pf_enable=yes
+  doas sysrc pf_flags=""
+
+  # Load `pflog` module
+  doas sysrc pflog_enable=yes
+  doas sysrc pflog_logfile="/var/log/pflog"
+
+  # `pflogd` has a default 60s delay flush time, let's set it to 5 sec.
+  # Make it easy for debugging purpose. For detail, `man pflogd`
+  doas sysrc pflog_flags="-d 5"
+#+END_SRC
+
+=pf= will not start if it cannot find =/etc/pf.conf= and it doesn't exist by default. That said, you have to have your own ruleset in =/etc/pf.conf= before =pf= can work!!!
+
+
+*** =pf= for router
+
+If your =pf= is running inside a router that needs to handle Packets forwarding or =NAT=, then you need to add the following:
+
+#+BEGIN_SRC bash
+  # `sysctl net.inet.ip.forwarding=1`
+  doas sysrc gateway_enable=YES
+
+  # If you need IPV6
+  # `sysctl net.inet6.ip6.forwarding=1`
+  doas sysrc ipv6_gateway_enable=YES
+#+END_SRC
+
+
+*** Access permission for =/etc/pf.conf=:
+
+#+BEGIN_SRC bash
+  #
+  # Only `root` can read & write
+  #
+  doas chmod 600 /etc/pf.conf
+#+END_SRC
+
+
+** Service
+
+You can start and stop =pf= manually at any given time
+
+#+BEGIN_SRC bash
+  doas service pf start
+  doas service pflog start
+
+  #
+  # Check status
+  #
+  doas service pf status
+  doas service pflog status
+#+END_SRC
+
+
+** =pfctl=: Control the packet filter (PF) device
+
+By default, =pfctl= won't output any message (if no syntax errors), you better use =-v= if you want to see some information.
+
+***  Enable and disable
+
+#+BEGIN_SRC bash
+  #
+  # Enable PF
+  #
+  doas pfctl -e
+
+  #
+  # Disable PF
+  #
+  doas pfctl -d
+#+END_SRC
+
+
+*** Flush, reload and parse only (but not reload)
+
+#+BEGIN_SRC bash
+  #
+  # Flush all NAT, filter, state, and table rules and reload
+  #
+  pfctl -F all -f /etc/pf.conf
+
+  #
+  # Reload
+  #
+  pfctl -f /etc/pf.conf
+
+  #
+  # `-n`: Parse but NOT reload, used to check all new rules you wrote
+  #
+  pfctl -vnf /etc/pf.conf
+#+END_SRC
+
+
+*** Report and status print
+
+#+BEGIN_SRC bash
+  #
+  # Print out filter rules, add `-v` to show packets info
+  #
+  pfctl -s rules
+  pfctl -vs rules
+
+  #
+  # Print out nat rules, add `-v` to show packets info
+  #
+  pfctl -s nat
+
+  #
+  # Print out state tables, add `-v` to show packets info
+  #
+  pfctl -s states
+#+END_SRC
+
+
+
+** =/etc/pf.conf= rules
+
+=man pf.conf= is the best place to know all surtaxes and rules guides.
+
+Also, all examples you can found in =/usr/share/examples/pf=.
+
+
+*** Concepts
+
+- =Macros=: just act like  =variable=
+
+- =Lists=: List of values
+
+Example combined =Macros= and =List= together:
+
+#+BEGIN_SRC bash
+    tcp_services = "{ ssh, smtp, domain, www, pop3, auth, pop3s }"
+
+    # Use `$tcp_services` in ruleset
+#+END_SRC
+
+You can use =port name= instead of =port number=, all valid port names are in =/etc/services= (port name, port number/protocol, description).
+
+
+*** =Top-to-bottom= last matching rule!!!
+
+Rules are evaluated from top to bottom, in the sequence they are written. For each packet or connection evaluated by =PF=, the last matching rule in the ruleset is the one which is applied.
+
+#+BEGIN_SRC bash
+  rule_1
+  rule_2
+  rule_3
+#+END_SRC
+
+If =rule_1= and =rule_3= both match packets, =rule_3= wins!!!
+
+
+However, when a packet matches a rule which contains the =quick= keyword, the rule processing stops and the packet is treated according to that rule. This is very useful when an exception to the general rules is needed.
+
+#+BEGIN_SRC bash
+  rule_1_with_`quick`
+  rule_2_with_`quick`
+  rule_3_with_`quick`
+#+END_SRC
+
+If =rule_1= and =rule_3= both match packets, =rule_1= wins!!!
+
+That said the =quick= keyword makes the same evaluation mode like =iptables=: =First match first win=
+
+
+*** Statefully by default
+
+By default =pf(4)= filters packets =statefully=:
+
+The first time a packet matches a pass rule, a state entry is created. For subsequent packets the filter checks whether the packet matches any state.  If it does, the packet is passed without evaluation of any rules. After the connection is closed or times out, the state entry is automatically removed.
+
+For example:
+
+#+BEGIN_SRC bash
+  #
+  # `all` is equivalent to `from any to any`.
+  #
+  pass out inet proto icmp all icmp-type echoreq
+#+END_SRC
+
+It allows echo requests (such as those created by =ping=) out =statefully=, and matches incoming echo replies correctly to states.
+
+
+Performance:
+
+Also, looking up states is usually faster than evaluating rules.  If there are =50= rules, all of them are evaluated sequentially in =O(n)=.  Even with =50000= states, only 16 comparisons are needed to match a state, since states are stored in a binary search tree that allows searches in =O(log2n)=.
+
+
+*** Useful address tips
+
+
+
+** How to debug missing rules
+
+*** Add the following rules to log all uncaptured package by any rules
+
+#+BEGIN_SRC bash
+  block log(all) all
+#+END_SRC
+
+
+*** Remove the =/var/log/pflog= file and restart the =pflog= service
+
+#+BEGIN_SRC bash
+  
+  rm -rf /var/log/pflog
+
+  #
+  # Restart will re-create the empty /var/log/pflog
+  #
+  service pflogd restart
+#+END_SRC
+
+
+*** View the =/var/log/pflog= to figure out the missing rules or potential attacks
+
+#+BEGIN_SRC bash
+  doas tcpdump -n -e -ttt -r /var/log/pflog
+
+  # 00:01:03.618602 rule 2/0(match): block in on em0: 192.168.1.188.49917 > 192.168.1.138.22: Flags [SEW], seq 2122272047, win 65535, options [mss 1460,[|tcp]>
+  # 00:00:01.001603 rule 2/0(match): block in on em0: 192.168.1.188.49917 > 192.168.1.138.22: Flags [S], seq 2122272047, win 65535, options [mss 1460,[|tcp]>
+  # 00:00:01.001349 rule 2/0(match): block in on em0: 192.168.1.188.49917 > 192.168.1.138.22: Flags [S], seq 2122272047, win 65535, options [mss 1460,[|tcp]>
+  # 00:00:01.001207 rule 2/0(match): block in on em0: 192.168.1.188.49917 > 192.168.1.138.22: Flags [S], seq 2122272047, win 65535, options [mss 1460,[|tcp]>
+  # 00:00:00.378458 rule 2/0(match) [uid 123]: block out on em0: 192.168.1.138.123 > 103.242.68.69.123: NTPv4, Client, length 48
+  # 00:01:04.002678 rule 2/0(match) [uid 123]: block out on em0: 192.168.1.138.123 > 103.242.70.4.123: NTPv4, Client, length 48
+#+END_SRC
+
+From above log, we can see:
+- =192.168.1.188= tries to connect via ssh
+- =NTP= tries to go out via UDP 123
+
