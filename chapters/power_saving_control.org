@@ -1,0 +1,25 @@
+* Power Saving Control
+
+** Enable =powerd= daemon
+
+#+BEGIN_SRC bash
+  doas sysrc powerd_enable=YES
+
+  doas sysrc powerd_flags="-a hiadaptive -i 25 -r 85 -N"
+#+END_SRC
+
+Reboot or restart service by running =doas service powerd restart=
+
+
+** Flags description:
+
+=-a=: Selects the mode to use while on AC power.
+
+=hiadaptive=: Operation mode. More info at =powerd(8)=.
+
+=-i=: Specifies the CPU load percent level when adaptive mode should begin to degrade performance to save power.
+
+=-r=: Specifies the CPU load percent level where adaptive mode should consider the CPU running and increase performance.
+
+=-N=: Treat "nice" time as idle for the purpose of load calculation; i.e., do not increase the CPU frequency if the CPU is only busy with "nice" processes.
+

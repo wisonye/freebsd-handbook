@@ -3,7 +3,7 @@
 ** Install everything I need
 
 #+BEGIN_SRC bash
-  doas pkg install git git-delta bat ripgrep procs htop btop fastfetch fzf fish neovim py39-pynvim tmux emacs-devel lf
+  doas pkg install git git-delta bat ripgrep procs htop btop fastfetch fzf fish neovim py39-pynvim tmux emacs-devel aspell aspell-ispell en-aspell lf
 #+END_SRC
 
 =emacs-devel= is latest developement version, it enables =NATIVECOMP= feature!

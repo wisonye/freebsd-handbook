@@ -25,6 +25,7 @@
 *** [[file:chapters/virtual_consoles.org][Virtual consoles]]
 *** [[file:chapters/manage_service.org][Managing services]]
 *** [[file:chapters/list_hardware_info.org][List hardare info]]
+*** [[file:chapters/power_saving_control.org][Power saving control]]
 *** [[file:chapters/about_cleaning_cache.org][About cleaning cache]]
 ** Software installation
 *** [[file:chapters/neovim.org][Neovim]]
