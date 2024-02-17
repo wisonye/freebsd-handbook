@@ -1,0 +1,28 @@
+* LF (=list files=) is a terminal file manager written in =Go=
+
+** How to config previwer
+
+*** Install =ctpv=
+
+#+BEGIN_SRC bash
+  git clone https://github.com/NikitaIvanovV/ctpv
+  cd ctpv
+  doas gmake install
+#+END_SRC
+
+
+*** Install preview programs
+
+#+BEGIN_SRC bash
+  doas pkg install bat jq ffmpegthumbnailer ffmpeg graphics/py-ueberzug
+#+END_SRC
+
+
+*** Add config to =~/.config/lf/lfrc=
+
+#+BEGIN_SRC bash
+  set previewer ctpv
+  set cleaner ctpvclear
+  &ctpv -s $id
+  &ctpvquit $id
+#+END_SRC

@@ -1,0 +1,47 @@
+* About cleaning cache
+
+After running =FreeBSD= for a while, you will notice that your disk free space keeps reducing and never stop, that should be a signal that you should clean your cache. Usually, it will save over =GB= disk space:)
+
+#+BEGIN_SRC bash
+  #
+  # Show how much your cache hold the disk space and remove the bigger you see
+  #
+  # dust -d1 ~/.cache
+  /usr/bin/du -ch -d1 ~/.cache
+
+  #
+  # Removing a package may leave behind dependencies which are no longer required.
+  # Unneeded packages that were installed as dependencies (leaf packages) can be
+  # automatically detected and removed using:
+  #
+  doas pkg autoremove
+
+  #
+  # Clean the entire cache which located at `/var/cache/pkg`
+  #
+  # `--dry-run` only show what will be affected but doesn't execute
+  #
+  doas pkg clean --dry-run --all
+  # The following package files will be deleted:
+  #         /var/cache/pkg/doas-6.3p9~75e7962988.pkg
+  #         /var/cache/pkg/doas-6.3p9.pkg
+  #         /var/cache/pkg/lsblk-3.7~149284eee5.pkg
+  #         /var/cache/pkg/lsblk-3.7.pkg
+  # The cleanup will free 29 KiB
+
+  #
+  # After confirming, you can run the real cleanup:
+  #
+  doas pkg clean --all
+
+  #
+  # Remove cargo cache
+  #
+  cargo cache --autoclean
+
+  #
+  # After that, calculate again, it should get big improved.
+  #
+  # dust -d1 ~/.cache
+  /usr/bin/du -ch -d1 ~/.cache
+#+END_SRC

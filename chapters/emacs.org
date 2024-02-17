@@ -1,7 +1,55 @@
 * Emacs
 
-** =ispell=
+You got 2 options when install =Emacs= via packages:
+
+- =doas pkg install emacs=: latest release version but without =NATIVECOMP= feature.
+
+- =doas pkg install emacs-devel=: latest developement version with =NATIVECOMP= feature.
+
+But what if you want the latest release version and with the =NATIVECOMP= feature?
+
+That's why you need to install =Emacs= via =Ports=, plz make sure you follow the =ports.org= to setup (=git clone=) the latest port tree into =/usr/ports=!!!
+
+Then =cd /usr/ports/editors/emacs= and finish the following steps:
+
+** How to print the supported and default options:
 
 #+BEGIN_SRC bash
-  doas pkg install aspell-ispell en-aspell
+  #
+  # Make sure you're in `/usr/ports/editors/emacs` folder!!!
+  #
+  make showconfig
+
+  # NATIVECOMP=off: Emacs Lisp native compiler support
 #+END_SRC
+
+As you can see the =NATIVECOMP= is off by default.
+	
+
+** How to change config
+
+#+BEGIN_SRC bash
+  #
+  # If you don't mind it pops up configuration UI for all dependencies
+  #
+  doas make config
+
+  #
+  # If you want to only config once, plz do this rather than `make config` (I prefer this one)
+  #
+  doas make config-recursive
+#+END_SRC
+		
+	
+If you forget what configs you choose and want to go back to the default state, then you can run =make rmconfig= and restart again:)
+
+
+** How to install
+
+#+BEGIN_SRC bash
+  doas make install clean
+#+END_SRC
+
+Pay attention with this: You can't use =make -j= flag, it will lead you to unexpected errors and fail to build!!! Also, it uses all the available CPU cores to build by default, you don't need to worry about that:)
+
+You can run =htop= or =btop= to prove that, all CPU cores are 100% when runing the =make= command:)

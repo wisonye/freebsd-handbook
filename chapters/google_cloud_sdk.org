@@ -1,0 +1,61 @@
+* Google-Cloud-SDK
+
+** Install python3.x
+
+Before installing =google-cloud-sdk=, you better install =python3.x= if you don't have yet. Otherwise, you will face some annying =Python Not Found= or =No module named '_sqlite3'= issues.
+
+#+BEGIN_SRC bash
+  #
+  # Install one if you don't have it yet
+  #
+  doas pkg install python311
+
+  #
+  # Make a soft link to your installed python, `gcloud` prefers
+  # `3.10` or above
+  #
+  doas ln -sf /usr/local/bin/python3.11 /usr/local/bin/python
+#+END_SRC
+
+Set =CLOUDSDK_PYTHON= env var in your shell (=fish= shell example here):
+
+#+BEGIN_SRC bash
+  set CLOUDSDK_PYTHON /usr/local/bin/python3.11
+#+END_SRC
+
+Now, you're good to go:)
+
+
+** Install
+
+#+BEGIN_SRC bash
+  doas pkg install google-cloud-sdk
+#+END_SRC
+
+
+** Auth
+
+#+BEGIN_SRC bash
+  gcloud auth login YOUR_GMAIL_ACCOUNT_HERE
+#+END_SRC
+
+
+** Update components
+
+#+BEGIN_SRC bash
+  gcloud components update
+
+  #
+  # If no permission to access `/usr/local/google-cloud-sdk` folder
+  #
+  doas gcloud components update
+#+END_SRC
+
+
+** Set your prefer settings (optional)
+
+#+BEGIN_SRC bash
+  gcloud config set run/region YOUR_GCP_PREFER_LOCATION_HERE
+  gcloud config set project YOUR_GCP_PROJECT_ID_HERE
+#+END_SRC
+
