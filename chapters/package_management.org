@@ -240,7 +240,7 @@ Display only name with version, simple description and install size:
 
 *** Package detail info for the non-install package
 
-~pkg info~ only work for =installed package=, if you want to see the detail info (description, dependencies, etc), then you need to do like this:
+~pkg info~ only work for =installed package=, if you want to see the detail info (description, compilation options, dependencies, etc), then you need to do like this:
 
 #+BEGIN_SRC bash
   #
@@ -248,35 +248,25 @@ Display only name with version, simple description and install size:
   # For example, search for `llvm`:
   #
   pkg search --origins llvm
-  ...
-  devel/llvm                     Meta-port for the default version of the LLVM Toolchain
-  devel/llvm-cheri               LLVM and Clang with support for the CHERI architecture
-  devel/llvm-cheriot             LLVM and Clang with support the CHERIoT microcontroller
-  devel/llvm-devel               LLVM and Clang
-  devel/llvm-devel               LLVM and Clang
-  devel/llvm-morello             LLVM and Clang with support the Arm Morello architecture
-  devel/llvm10                   LLVM and Clang
-  devel/llvm11                   LLVM and Clang
-  devel/llvm12                   LLVM and Clang
-  devel/llvm13                   LLVM and Clang
-  devel/llvm14                   LLVM and Clang
-  devel/llvm15                   LLVM and Clang
-  devel/llvm15                   LLVM and Clang
-  devel/llvm16                   LLVM and Clang
-  devel/llvm16                   LLVM and Clang
-  devel/llvm17                   LLVM and Clang
-  devel/llvm17                   LLVM and Clang
-  devel/llvm18                   LLVM and Clang
-  devel/llvm18                   LLVM and Clang
-  ...
+  # ...
+  # devel/llvm15                   LLVM and Clang
+  # devel/llvm15                   LLVM and Clang
+  # devel/llvm16                   LLVM and Clang
+  # devel/llvm16                   LLVM and Clang
+  # devel/llvm17                   LLVM and Clang
+  # devel/llvm17                   LLVM and Clang
+  # devel/llvm18                   LLVM and Clang
+  # devel/llvm18                   LLVM and Clang
+  # ...
 
 
   #
-  # So, this command to get the detail from the non-installed package
+  # So, the following command can get the detail from the non-installed package.
+  # And you MUST to provide the full package name!!!
   #
   # `pkg search --origins`: Search package
   # `--full`: Show the full information
-  # `-e/--exact`: only match the exact given package name as result
+  # `-e/--exact`: only match the exact given package name
   #
   pkg search --origins --full -e devel/llvm18 | bat
 #+END_SRC
