@@ -21,3 +21,7 @@
 *** [[file:chapters/zfs-snapshot-feature.org][ZFS snapshot feature]]
 *** [[file:chapters/zfs-compress-feature.org][ZFS compress feature]]
 ** [[file:chapters/pf.org][Firewall - PF (Packets Filter)]]
+** [[file:chapters/system_configuration.org][System Configuration]]
+*** [[file:chapters/virtual_consoles.org][Virtual consoles]]
+*** [[file:chapters/manage_service.org][Managing services]]
+*** [[file:chapters/list_hardware_info.org][List hardare info]]

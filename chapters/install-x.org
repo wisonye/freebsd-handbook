@@ -15,8 +15,10 @@ Official document is [[https://docs.freebsd.org/en/books/handbook/x11][here]].
 ** Install everything I need
 
 #+BEGIN_SRC bash
-  doas pkg install xorg bspwm sxhkd alacritty feh polybar git bat ripgrep procs htop btop fastfetch fzf fish neovim xdg-utils py39-pynvim alacritty tmux dunst xclip pavucontrol mpv cava dbus lf
+  doas pkg install xorg bspwm sxhkd alacritty feh polybar git bat ripgrep procs htop btop fastfetch fzf fish neovim xdg-utils py39-pynvim emacs-devel alacritty tmux dunst xclip pavucontrol mpv cava dbus lf
 #+END_SRC
+
+=emacs-devel= is latest developement version, it enables =NATIVECOMP= feature!
 
 
 ** Add user into =video= group to enable 3D acceleration when available

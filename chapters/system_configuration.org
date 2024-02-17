@@ -1,0 +1,13 @@
+* System Configuration
+
+=FreeBSD= use different directories to place different configuration files:
+
+| Folder         | Description                                               |
+|----------------+-----------------------------------------------------------|
+| /etc           | FreeBSD base system configuration                         |
+| /etc/defaults  | Default base system configuration files                   |
+| /usr/local/etc | Applications (installed via =pkg= and =ports=) configuration) |
+|                |                                                           |
+
+
+For example, =/etc/rc.conf= holds the system settings and =/etc/defaults/rc.conf= holds all default system settings, you SHOULD NOT edit =/etc/defaults/rc.conf= direclty, instead, add your own settings in =/etc/rc.conf= to override the default settings.

@@ -3,8 +3,10 @@
 ** Install everything I need
 
 #+BEGIN_SRC bash
-  doas pkg install git git-delta bat ripgrep procs htop btop fastfetch fzf fish neovim py39-pynvim tmux lf
+  doas pkg install git git-delta bat ripgrep procs htop btop fastfetch fzf fish neovim py39-pynvim tmux emacs-devel lf
 #+END_SRC
+
+=emacs-devel= is latest developement version, it enables =NATIVECOMP= feature!
 
 
 ** Change =fish= as default shell

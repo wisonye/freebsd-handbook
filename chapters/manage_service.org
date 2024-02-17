@@ -1,0 +1,111 @@
+* Managing services
+
+[[https://docs.freebsd.org/en/books/handbook/config/#configtuning-rcd][here]] is the official doc about =Service=.
+
+** Configuration file to control service starts or not
+
+=/etc/rc.conf==, =RC=: Resource control
+
+#+BEGIN_SRC bash
+  cat /etc/rc.conf
+
+  # clear_tmp_enable="YES"
+  # syslogd_flags="-ss"
+  # sendmail_enable="NONE"
+  # hostname="my-bsd"
+  # ifconfig_em0="DHCP"
+  # sshd_enable="YES"
+  # ntpd_enable="YES"
+  # # Set dumpdev to "AUTO" to enable crash dumps, "NO" to disable
+  # dumpdev="AUTO"
+  # zfs_enable="YES"
+#+END_SRC
+
+
+** List all enabled services
+
+#+BEGIN_SRC bash
+  service -e
+#+END_SRC
+
+
+** Status, stop and restart service
+
+#+BEGIN_SRC bash
+  service -v SERVICE_NAME status
+  doas service -v SERVICE_NAME stop
+  doas service -v SERVICE_NAME restart
+#+END_SRC
+
+
+** A better way to edit =/etc/rc.conf=
+
+You should use =sysrc= (safely edit system rc files) instead of editing =/etc/rc.conf= directly. Here is the sample:
+
+#+BEGIN_SRC bash
+  #
+  # `/etc/rc.conf` before editing
+  #
+  clear_tmp_enable="YES"
+  syslogd_flags="-ss"
+  sendmail_enable="NONE"
+  hostname="my-bsd"
+  ifconfig_em0="DHCP"
+  sshd_enable="YES"
+  ntpd_enable="YES"
+  # Set dumpdev to "AUTO" to enable crash dumps, "NO" to disable
+  dumpdev="AUTO"
+  zfs_enable="YES"
+  kld_list="virtio_gpu amdgpu"
+#+END_SRC
+
+
+*** Change service value =YES/NO= (no matter =xxxx_enable= line exists or not)
+
+#+BEGIN_SRC bash
+  doas sysrc xxxx_enable=yes
+  # xxxx_enable: NO -> yes
+#+END_SRC
+
+After that, ~xxxx_enable="yes"~ added to =/etc/rc.conf=.
+
+
+*** Change service list value (array type)
+
+~kld_list+=XXX~ - Add ~XXX~ module to ~kld_list~
+
+~kld_list-=XXX~ - Remove ~XXX~ module from ~kld_list~
+
+Before editing: ~kld_list="virtio_gpu amdgpu"~
+
+
+#+BEGIN_SRC bash
+  doas sysrc kld_list-="virtio_gpu"
+  # kld_list: virtio_gpu amdgpu -> amdgpu
+#+END_SRC
+
+Now should be updated to ~kld_list="amdgpu"~
+
+
+#+BEGIN_SRC bash
+  doas sysrc kld_list-="amdgpu"
+  #kld_list: amdgpu ->
+#+END_SRC
+
+Confirm:
+
+#+BEGIN_SRC bash
+  cat /etc/rc.conf
+  # clear_tmp_enable="YES"
+  # syslogd_flags="-ss"
+  # sendmail_enable="NONE"
+  # hostname="my-bsd"
+  # ifconfig_em0="DHCP"
+  # sshd_enable="YES"
+  # ntpd_enable="YES"
+  # # Set dumpdev to "AUTO" to enable crash dumps, "NO" to disable
+  # dumpdev="AUTO"
+  # zfs_enable="YES"
+  # kld_list=""
+  # pf_enable="yes"
+#+END_SRC

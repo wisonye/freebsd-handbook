@@ -1,0 +1,80 @@
+* List hardware info
+
+** List all disks
+
+#+BEGIN_SRC bash
+  doas camcontrol devlist
+
+  # <Samsung SSD 970 EVO Plus 1TB 4B2QEXM7>  at scbus0 target 0 lun 1 (pass0,nda0)
+  # <FreeBSD-0 SSD F.70AZC0>           at scbus2 target 0 lun 0 (pass0,ada0)
+  # < Virtual DVD-ROM R103>            at scbus3 target 0 lun 0 (cd0,pass1)
+#+END_SRC
+
+
+** List all disk with partition info
+
+Maybe you need to install it first: =doas pkg install lsblk=
+
+#+BEGIN_SRC bash
+  lsblk
+#+END_SRC
+
+
+** List all USB info (with interface speed)
+
+#+BEGIN_SRC bash
+  doas usbconfig
+
+  # ugen0.1: <Intel XHCI root HUB> at usbus0, cfg=0 md=HOST spd=SUPER (5.0Gbps) pwr=SAVE (0mA)
+  # ugen0.2: <AONE Varmilo Keyboard> at usbus0, cfg=0 md=HOST spd=FULL (12Mbps) pwr=ON (350mA)
+  # ugen0.3: <Logitech USB Receiver> at usbus0, cfg=0 md=HOST spd=FULL (12Mbps) pwr=ON (98mA)
+  # ugen0.4: <vendor 0x8087 product 0x0032> at usbus0, cfg=0 md=HOST spd=FULL (12Mbps) pwr=ON (100mA)
+#+END_SRC
+
+If you need =USB= auto mount, check [[https://docs.freebsd.org/en/books/handbook/disks/#usb-disks][here]].
+
+
+** How to mount =Ext2/3/4= format partition
+
+You need to load the =ext2fs= module before you can mount the partition.
+
+#+BEGIN_SRC bash
+  #
+  # Load the `ext2fs` module
+  #
+  doas kldload ext2fs
+
+  #
+  # Mount ext4 partition, for example, /dev/da1p3
+  #
+  doas mount -t ext2fs /dev/da1p3 /mnt
+
+  #
+  # Umount
+  #
+  doas umount /mnt
+#+END_SRC
+
+
+** List all PCI devices
+
+*** List all PCI device into a file, then you can search all hardware info on your computer
+
+#+BEGIN_SRC bash
+  pciconf -lv > ~/hardware_info.log
+#+END_SRC
+
+
+*** Only list network NIC info
+
+#+BEGIN_SRC bash
+  pciconf -lv | grep network -B4
+#+END_SRC
+
+
+*** Only list display card (GPU) info
+
+#+BEGIN_SRC bash
+  pciconf -lv | grep VGA -B4
+#+END_SRC
+
