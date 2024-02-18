@@ -15,7 +15,7 @@
 ** [[file:chapters/custom-kernel.org][Custom kernel]]
 ** Install =DE (Desktop Environment)= or =WM (Window Manager)=
 *** [[file:chapters/install-x.org][Install X]] 
-*** Install Hyprland
+*** [[file:chapters/install-hyprland.org][Install Hyprland]]
 ** ZFS dive deep
 *** [[file:chapters/zfs-overview.org][ZFS overview]]
 *** [[file:chapters/zfs-snapshot-feature.org][ZFS snapshot feature]]

@@ -1,0 +1,147 @@
+* Install Hyprland
+
+** Install everything I need
+
+#+BEGIN_SRC bash
+  doas pkg install alacritty polybar git bat ripgrep htop btop fastfetch fzf fish neovim py39-pynvim emacs-devel aspell aspell-ispell en-aspell alacritty tmux dunst pavucontrol mpv cava dbus lf hyprland qt6-wayland xdg-desktop-portal-hyprland-qt6 wl-clipboard waybar
+#+END_SRC
+
+
+** Add user into =video= group to enable 3D acceleration when available
+
+Access to =/dev/dri= is needed to allow 3D acceleration on video cards.
+
+#+BEGIN_SRC bash
+    doas pw groupmod video -m wison
+
+    # Confirm
+    groups wison
+    # wison whell video
+#+END_SRC
+
+
+** Setup ~XDG_RUNTIME_DIR~ directory
+
+*** Set ~XDG_RUNTIME_DIR~ for your shell
+
+All compositors using =Wayland= will need a runtime directory defined in the environment:
+
+#+BEGIN_SRC bash
+  #
+  # Fish-shell
+  #
+  set --export XDG_RUNTIME_DIR /tmp
+
+  #
+  # Bash-shell
+  #
+  export XDG_RUNTIME_DIR=tmp
+#+END_SRC
+
+
+Without this, you will see the following error when you run ~Hyprland~:
+
+#+BEGIN_SRC bash
+  [CRITICAL] Critical error thrown: XDG_RUNTIME_DIR is not set!
+#+END_SRC
+
+
+*** Set ~XDG_RUNTIME_DIR~ in ~/.config/hypr/hyprland.conf~
+
+#+BEGIN_SRC bash
+  env = XDG_RUNTIME_DIR,/tmp
+#+END_SRC
+
+
+Without this, you will see the following error when you run ~Hyprland~:
+
+#+BEGIN_SRC bash
+  [WARN] wl_display_add_socket for wayland-1 returned -1: skipping candidate 1
+  [WARN] wl_display_add_socket for wayland-2 returned -1: skipping candidate 2
+  [WARN] wl_display_add_socket for wayland-3 returned -1: skipping candidate 3
+  [WARN] wl_display_add_socket for wayland-4 returned -1: skipping candidate 4
+  [WARN] wl_display_add_socket for wayland-5 returned -1: skipping candidate 5
+  [WARN] wl_display_add_socket for wayland-6 returned -1: skipping candidate 6
+  [WARN] wl_display_add_socket for wayland-7 returned -1: skipping candidate 7
+  [WARN] wl_display_add_socket for wayland-8 returned -1: skipping candidate 8
+  [WARN] wl_display_add_socket for wayland-9 returned -1: skipping candidate 9
+  [WARN] wl_display_add_socket for wayland-10 returned -1: skipping candidate 10
+  [WARN] wl_display_add_socket for wayland-11 returned -1: skipping candidate 11
+  [WARN] wl_display_add_socket for wayland-12 returned -1: skipping candidate 12
+  [WARN] wl_display_add_socket for wayland-13 returned -1: skipping candidate 13
+  [WARN] wl_display_add_socket for wayland-14 returned -1: skipping candidate 14
+  [WARN] wl_display_add_socket for wayland-15 returned -1: skipping candidate 15
+  [WARN] wl_display_add_socket for wayland-16 returned -1: skipping candidate 16
+  [WARN] wl_display_add_socket for wayland-17 returned -1: skipping candidate 17
+  [WARN] wl_display_add_socket for wayland-18 returned -1: skipping candidate 18
+  [WARN] wl_display_add_socket for wayland-19 returned -1: skipping candidate 19
+  [WARN] wl_display_add_socket for wayland-20 returned -1: skipping candidate 20
+  [WARN] wl_display_add_socket for wayland-21 returned -1: skipping candidate 21
+  [WARN] wl_display_add_socket for wayland-22 returned -1: skipping candidate 22
+  [WARN] wl_display_add_socket for wayland-23 returned -1: skipping candidate 23
+  [WARN] wl_display_add_socket for wayland-24 returned -1: skipping candidate 24
+  [WARN] wl_display_add_socket for wayland-25 returned -1: skipping candidate 25
+  [WARN] wl_display_add_socket for wayland-26 returned -1: skipping candidate 26
+  [WARN] wl_display_add_socket for wayland-27 returned -1: skipping candidate 27
+  [WARN] wl_display_add_socket for wayland-28 returned -1: skipping candidate 28
+  [WARN] wl_display_add_socket for wayland-29 returned -1: skipping candidate 29
+  [WARN] wl_display_add_socket for wayland-30 returned -1: skipping candidate 30
+  [WARN] wl_display_add_socket for wayland-31 returned -1: skipping candidate 31
+  [WARN] wl_display_add_socket for wayland-32 returned -1: skipping candidate 32
+  [WARN] All candidates failed, trying wl_display_add_socket_auto
+  [CRITICAL] m_szWLDisplaySocket NULL!
+  [CRITICAL] Critical error thrown: m_szWLDisplaySocket was null! (wl_display_add_socket and wl_display_add_socket_auto failed)
+#+END_SRC
+
+
+** Enable =seatd= daemon
+
+The =seatd= daemon helps manage access to shared system devices for non-root users in compositors; this includes graphics cards. Wayland compositors will need =seatd= to be enabled on the system and be running before starting a compositor environment.
+
+#+BEGIN_SRC bash
+  doas sysrc seatd_enable=YES
+  # service seatd start
+#+END_SRC
+
+
+** How to start and debug if it crashes
+
+*** Start =Hyprland=
+
+You better to redirect the error and log to different files like below:
+
+#+BEGIN_SRC bash
+  Hyprland --config ~/.config/hypr/hyprland.conf 2>~/.hyprland.err >~/.hyprland.log
+#+END_SRC
+
+
+*** How to debug if it crashes
+
+Once you provide the log file like above, then you have a look at those log files to figure out the problem:
+
+#+BEGIN_SRC bash
+  bat ~/.hyprland.log
+
+  # ...
+  # [LOG] Creating the HookSystem!
+  # [LOG] Creating the KeybindManager!
+  # [LOG] [hookSystem] New hook event registered: configReloaded
+  # [LOG] Creating the AnimationManager!
+  # [LOG] Created a bezier curve, baked 255 points, mem usage: 4.08kB, time to bake: 19.92µs. Estimated average calc time: 0.10µs.
+  # [LOG] Creating the ConfigManager!
+  # [LOG] NOTE: further logs to stdout / logfile are disabled by default. Use debug:disable_logs and debug:enable_stdout_logs to override this.
+  # [LOG] Creating the CHyprError!
+  # [LOG] [hookSystem] New hook event registered: focusedMon
+  # [LOG] [hookSystem] New hook event registered: preRender
+  # [LOG] Creating the LayoutManager!
+  # [LOG] [hookSystem] New hook event registered: preConfigReload
+  # [LOG] Reloading the config!
+  # [LOG] Created a bezier curve, baked 255 points, mem usage: 4.08kB, time to bake: 17.55µs. Estimated average calc time: 0.02µs.
+  # [LOG] Using config: /home/wison/.config/hypr/hyprland.conf
+  # [LOG] Created a bezier curve, baked 255 points, mem usage: 4.08kB, time to bake: 18.14µs. Estimated average calc time: 0.02µs.
+  # [LOG] Registered dynamic var "$mainMod" -> SUPER
+  # [CRITICAL] Hyprland has crashed :( Consult the crash report at /home/wison/.hyprland/hyprlandCrashReport47945.txt for more information.
+#+END_SRC
+
+That means more details will be in  =/home/wison/.hyprland/hyprlandCrashReport47945.txt=, just open it and have a look.
+
