@@ -118,9 +118,19 @@ The =seatd= daemon helps manage access to shared system devices for non-root use
 
 *** Start =Hyprland=
 
-You better to redirect the error and log to different files like below:
+Put the following content into =~/.start_hyprland.sh=:
 
 #+BEGIN_SRC bash
+  #!/usr/local/bin/fish
+
+  #
+  # Remove previous session stuff
+  #
+  rm -rf /var/run/user/(id -u)/*
+
+  #
+  # Launch Hyprland with logging
+  #
   Hyprland --config ~/.config/hypr/hyprland.conf 2>~/.hyprland.err >~/.hyprland.log
 #+END_SRC
 
