@@ -22,34 +22,20 @@ Access to =/dev/dri= is needed to allow 3D acceleration on video cards.
 
 ** Setup ~XDG_RUNTIME_DIR~ directory
 
-*** Set ~XDG_RUNTIME_DIR~ for your shell
-
-All compositors using =Wayland= will need a runtime directory defined in the environment:
+*** Create ~XDG_RUNTIME_DIR~ and set owner permission
 
 #+BEGIN_SRC bash
-  #
-  # Fish-shell
-  #
-  set --export XDG_RUNTIME_DIR /tmp
-
-  #
-  # Bash-shell
-  #
-  export XDG_RUNTIME_DIR=tmp
+  doas mkdir /var/run/user/(id -u)
+  doas chown (id -un):(id -un) /var/run/user/(id -u)
 #+END_SRC
 
-
-Without this, you will see the following error when you run ~Hyprland~:
-
-#+BEGIN_SRC bash
-  [CRITICAL] Critical error thrown: XDG_RUNTIME_DIR is not set!
-#+END_SRC
-
-
-*** Set ~XDG_RUNTIME_DIR~ in ~/.config/hypr/hyprland.conf~
+It should create the folder name with your user id and own by you:
 
 #+BEGIN_SRC bash
-  env = XDG_RUNTIME_DIR,/tmp
+  ls -lht /var/run/user
+
+  # total 1
+  # drwxr-xr-x  3 wison wison    5B Feb 19 12:18 1001/
 #+END_SRC
 
 
@@ -91,6 +77,30 @@ Without this, you will see the following error when you run ~Hyprland~:
   [WARN] All candidates failed, trying wl_display_add_socket_auto
   [CRITICAL] m_szWLDisplaySocket NULL!
   [CRITICAL] Critical error thrown: m_szWLDisplaySocket was null! (wl_display_add_socket and wl_display_add_socket_auto failed)
+#+END_SRC
+
+
+*** Set ~XDG_RUNTIME_DIR~ for your shell
+
+All compositors using =Wayland= will need a runtime directory defined in the environment:
+
+#+BEGIN_SRC bash
+  #
+  # Fish-shell
+  #
+  set --export XDG_RUNTIME_DIR /var/run/user/(id -u)
+
+  #
+  # Bash-shell
+  #
+  export XDG_RUNTIME_DIR=/var/run/user/(id -u)
+#+END_SRC
+
+
+Without this, you will see the following error when you run ~Hyprland~:
+
+#+BEGIN_SRC bash
+  [CRITICAL] Critical error thrown: XDG_RUNTIME_DIR is not set!
 #+END_SRC
 
 
