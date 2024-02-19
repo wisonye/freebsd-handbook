@@ -186,3 +186,89 @@ That means more details will be in  =/home/wison/.hyprland/hyprlandCrashReport47
 #+END_SRC
 
 
+
+
+** Audio
+
+By default, =FreeBSD= will automatically detect sound card used by the system, you don't need to do anything.
+
+*** Check if your sound card has been detected correctly
+
+If you see any =pcm= output like below via either =dmesg= or =/dev/sndstat=, that means your sound card has been detected automatically:
+
+#+BEGIN_SRC bash
+  dmesg -a | rg pcm
+
+  # pcm0: <Conexant CX20632 (Analog)> at nid 25 and 26,27 on hdaa0
+  # pcm1: <Conexant CX20632 (Rear Analog Headphones)> at nid 28 on hdaa0
+  # pcm2: <Intel Tiger Lake (HDMI/DP 8ch)> at nid 4 on hdaa1
+#+END_SRC
+
+#+BEGIN_SRC bash
+  cat /dev/sndstat
+
+  # Installed devices:
+  # pcm0: <Conexant CX20632 (Analog)> (play/rec)
+  # pcm1: <Conexant CX20632 (Rear Analog Headphones)> (play)
+  # pcm2: <Intel Tiger Lake (HDMI/DP 8ch)> (play) default
+  # No devices installed from userspace.
+#+END_SRC
+
+
+*** Live change audio output device
+
+As you see the result from =cat /dev/sndstat=, you can choose audio output device between =pcm0/pcm1/pcm2=.
+
+You're able to make live change by running the following command:
+
+#+BEGIN_SRC bash
+  # Choose `pcm0`
+  sysctl hw.snd.default_unit=0
+  # Choose `pcm1`
+  sysctl hw.snd.default_unit=1
+  # Choose `pcm2`
+  sysctl hw.snd.default_unit=2
+#+END_SRC
+
+If you're playing, then you have to stop the audio/video and restart program to take affect!!!
+
+
+*** Audio over HDMI by default
+
+For =TH80=, the Intel GPU integrated with audio support, that's why you see =pcm2: <Intel Tiger Lake (HDMI/DP 8ch)> (play)=.
+
+But it's NOT the default audio output device, you have to change that if you want HDMI output by default.
+
+You can run ~sysctl hw.snd.default_unit=2~ for a live change, but you have to put it into =/etc/sysctl.conf= for permanent change like this:
+
+#+BEGIN_SRC bash
+  #
+  # Make audio over HDMI by default.
+  #
+  # ---------------------------------------------------------------------------
+  # cat /dev/sndstat
+  #
+  # Installed devices:
+  # pcm0: <Conexant CX20632 (Analog)> (play/rec) default
+  # pcm1: <Conexant CX20632 (Rear Analog Headphones)> (play)
+  # pcm2: <Intel Tiger Lake (HDMI/DP 8ch)> (play)
+  # No devices installed from userspace.
+  # ---------------------------------------------------------------------------
+  #
+  # That's why value `2`(pcm2) here to make the audio output over HDMI by default
+  #
+  hw.snd.default_unit=2
+#+END_SRC
+
+Make sure you read the comment to know which value you should set!!!
+
+After a reboot, use =mixer= to make sure that's the default audio output:
+
+#+BEGIN_SRC bash
+  mixer
+
+  # pcm2:mixer: <Intel Tiger Lake (HDMI/DP 8ch)> on hdaa1  (play) (default)
+  #     vol       = 0.05:0.05     pbk
+  #     pcm       = 0.05:0.05     pbk
+#+END_SRC
+
