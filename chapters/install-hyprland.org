@@ -306,7 +306,27 @@ After a reboot, use =mixer= to make sure that's the default audio output:
 
 **** Keybindings
 
-After opeining =qutebrowser=, then run the following command to customize the key bindings:
+You can run the following commands to open keybings help page:
+
+#+BEGIN_SRC bash
+  #
+  # Show all bindings
+  #
+  :bind
+
+  #
+  # Show `:bind` command syntax
+  #
+  :help :bind
+
+  #
+  # Show more details about bindings you need to know
+  #
+  :help bindings.commands
+#+END_SRC
+
+
+After launching =qutebrowser=, run the following command to customize my key bindings:
 
 #+BEGIN_SRC bash
   #
@@ -361,9 +381,9 @@ You can run ~:bind~ to show all key bindings at any given time.
 
 **** Settings
 
-When dealing with ~:set~, you got auto complection when pressing =tab= key, but you're able see the detailed help by running: ~:help XXXX~.
+When dealing with ~:set~, you have auto complection when pressing =tab= key, but you're able to see a detailed help info by running: ~:help XXXX~.
 
-For example, if you don't know what values are available for the =tabs.position= settings, then you can run ~:help tabs.position~:)
+For example, if you don't know what values are available for the =tabs.position= settings, then you can run ~:help tabs.position~.
 
 Here are my favorite settings:
 
