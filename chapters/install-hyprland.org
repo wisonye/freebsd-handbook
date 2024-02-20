@@ -121,12 +121,13 @@ The =seatd= daemon helps manage access to shared system devices for non-root use
 Put the following content into =~/.start_hyprland.sh=:
 
 #+BEGIN_SRC bash
-  #!/usr/local/bin/fish
+  #!/bin/sh
 
   #
   # Remove previous session stuff
   #
-  rm -rf /var/run/user/(id -u)/*
+  rm -rf /var/run/user/`id -u`/*
+  rm -rf ~/.hyprland.err ~/.hyprland.log
 
   #
   # Launch Hyprland with logging
@@ -250,3 +251,14 @@ After a reboot, use =mixer= to make sure that's the default audio output:
   #     pcm       = 0.05:0.05     pbk
 #+END_SRC
 
+
+
+** Wallpaper util
+
+#+BEGIN_SRC bash
+  git clone --depth=1 https://github.com/LGFae/swww.git
+  cd swww
+  cargo build --release
+  mv target/release/{swww, swww-daemon} ~/my-shell
+  cd .. && rm -rf swww
+#+END_SRC
