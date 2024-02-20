@@ -132,8 +132,8 @@ Here are my favorite settings:
   #
   # Start page and default page
   #
-  set url.start_pages "https://www.google.co.nz"
-  set url.default_page "https://www.google.co.nz"
+  :set url.start_pages "https://www.google.co.nz"
+  :set url.default_page "https://www.google.co.nz"
 
   #
   # Tabs on bottom
