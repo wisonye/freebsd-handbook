@@ -53,6 +53,29 @@ After creating =zroot@minimal=, you can run the command below to view all snapsh
 For more details, you can run `man zfs-snapshot` to know more.
 
 
+** List snapshots
+
+- List and sort by creation time
+
+  #+BEGIN_SRC emacs-lisp
+    zfs list -t snapshot -o name,used,creation -s creation
+  #+END_SRC
+
+  
+- List and sort by creation time, but only focus snapshot name and timeline
+
+  It helps to figure out which older snapshot you should destroy from.
+
+  #+BEGIN_SRC bash
+    zfs list -t snapshot -o name,creation -s creation | rg "zroot/ROOT/default@"
+
+    # zroot/ROOT/default@2024-02-15-15:12:43-0                        Thu Feb 15 15:12 2024
+    # zroot/ROOT/default@before-install-emacs                         Fri Feb 16 16:18 2024
+    # zroot/ROOT/default@minimal                                      Fri Feb 16 17:09 2024
+    # zroot/ROOT/default@hyprland_cutebrowser                         Tue Feb 20 17:48 2024
+  #+END_SRC
+  
+
 ** Compare 2 snapshots
 
 You can compare any 2 snapshots at any given time, it works like =git diff=.
@@ -304,7 +327,7 @@ All snapshots are located in the =MOUNTPOINT/.zfs/snapshot/SNAPSHOT_NAME= folder
 So, you can copy any files you want from the =.zfs/snapshot/SNAPSHOT_NAME/=. After that, better to take another snapshot if want that moment is rollbackable.
 
 
-*** Delete the older snapshots
+** Delete the older snapshots
 
 When creating many snapshots, it does take some disk spaces. So you can remove some of them to save some spaces. Even only keep the latest snapshot and that's fine.
 
