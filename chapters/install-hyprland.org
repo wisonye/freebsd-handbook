@@ -166,28 +166,6 @@ Once you provide the log file like above, then you have a look at those log file
 That means more details will be in  =/home/wison/.hyprland/hyprlandCrashReport47945.txt=, just open it and have a look.
 
 
-
-** Install nerd fonts
-
-*** SourceCodePro
-
-#+BEGIN_SRC bash
-  # Install nerd font version
-  cd temp
-  curl -OL https://github.com/ryanoasis/nerd-fonts/releases/latest/download/SourceCodePro.tar.xz
-  tar xvf SourceCodePro.tar.xz
-  rm -rf  SourceCodePro.tar.xz
-
-  # Update font cache
-  sudo mkdir /usr/local/share/fonts/source-code-pro-nerd-fonts
-  sudo mv ./*.ttf /usr/local/share/fonts/source-code-pro-nerd-fonts/
-  sudo fc-cache -fv
-  fc-cache -fv
-#+END_SRC
-
-
-
-
 ** Audio
 
 By default, =FreeBSD= will automatically detect sound card used by the system, you don't need to do anything.

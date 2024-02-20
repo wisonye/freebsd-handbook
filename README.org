@@ -28,6 +28,7 @@
 *** [[file:chapters/power_saving_control.org][Power saving control]]
 *** [[file:chapters/about_cleaning_cache.org][About cleaning cache]]
 ** Software installation
+*** [[file:chapters/fonts.org][fonts]]
 *** [[file:chapters/neovim.org][Neovim]]
 *** [[file:chapters/emacs.org][Emacs]]
 *** [[file:chapters/qutebrowser.org][Qutebrowser]]
