@@ -352,6 +352,12 @@ After launching =qutebrowser=, run the following command to customize my key bin
   :bind l tab-next
 
   #
+  # `u/d` to scroll up and down
+  #
+  :bind u scroll-page 0 -0.5
+  :bind d scroll-page 0 0.5
+
+  #
   # `M` open current url in `mpv`
   #
   :bind M spawm mpv {url}
