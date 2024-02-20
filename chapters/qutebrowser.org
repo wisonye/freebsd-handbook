@@ -1,0 +1,200 @@
+* Qute Browser
+
+** Install
+
+#+BEGIN_SRC bash
+  doas pkg install qutebrowser
+#+END_SRC
+
+
+** How to run
+
+#+BEGIN_SRC bash
+  dbus-run-session qutebrowser 
+#+END_SRC
+
+
+** How to open special pages
+
+*** Open help page
+
+~:help~
+
+
+*** Open settings page
+
+- ~:set~
+- Press =o=, then type =qute://settings=
+
+
+** Customize settings
+
+*** Keybindings
+
+You can run the following commands to open keybings help page:
+
+#+BEGIN_SRC bash
+  #
+  # Show all bindings
+  #
+  :bind
+
+  #
+  # Show `:bind` command syntax
+  #
+  :help :bind
+
+  #
+  # Show more details about bindings you need to know
+  #
+  :help bindings.commands
+#+END_SRC
+
+
+After launching =qutebrowser=, run the following command to customize my key bindings:
+
+#+BEGIN_SRC bash
+  #
+  # `jj` leave insert mode
+  #
+  :bind --mode insert jj mode-leave
+
+  #
+  # `q` to close tab 
+  #
+  :unbind d
+  :bind q tab-close 
+
+  #
+  # `t` to open tab 
+  #
+  :bind t open -t
+
+  #
+  # `h/l` to navigate tabs
+  #
+  :bind h tab-prev
+  :bind l tab-next
+
+  #
+  # `u/d` to scroll up and down
+  #
+  :bind u scroll-page 0 -0.5
+  :bind d scroll-page 0 0.5
+
+  #
+  # `M` open current url in `mpv`
+  #
+  :bind M spawm mpv {url}
+  # :bind M hint links spawm mpv {hint-url}
+
+  #
+  # Yanking relate
+  #
+  # :bind yt yank title
+  :bind yu yank pretty-url
+  :bind ya yank inline [{title}]({url})
+
+  #
+  # Cycle/Toggle value between the given values
+  #
+  :bind ct config-cycle tabs.show always never
+
+  #
+  # Toggle or focus dev tools
+  #
+  :bind dt devtools
+  :bind df devtools-focus
+#+END_SRC
+
+You can run ~:bind~ to show all key bindings at any given time.
+
+
+*** Settings
+
+When dealing with ~:set~, you have auto complection when pressing =tab= key, but you're able to see a detailed help info by running: ~:help XXXX~.
+
+For example, if you don't know what values are available for the =tabs.position= settings, then you can run ~:help tabs.position~.
+
+Here are my favorite settings:
+
+#+BEGIN_SRC bash
+  #
+  # Update the adblock list
+  #
+  :adblock-update
+
+  #
+  # Dark mode
+  #
+  :set colors.webpage.darkmode.enabled true
+
+  #
+  # Start page and default page
+  #
+  set url.start_pages "https://www.google.co.nz"
+  set url.default_page "https://www.google.co.nz"
+
+  #
+  # Tabs on bottom
+  #
+  :set tabs.position bottom
+
+  #
+  # All UI Fonts
+  #
+  :set fonts.default_family "SauceCodePro Nerd Font"
+  :set fonts.default_size 18px
+
+  #
+  # Web page Fonts
+  #
+  :set fonts.web.size.default 20
+  :set fonts.web.size.default_fixed 18
+  :set fonts.web.family.standard "SauceCodePro Nerd Font"
+  :set fonts.web.family.cursive "SauceCodePro Nerd Font"
+  :set fonts.web.family.fantasy "SauceCodePro Nerd Font"
+  :set fonts.web.family.serif "SauceCodePro Nerd Font"
+  :set fonts.web.family.sans_serif "SauceCodePro Nerd Font"
+  :set fonts.web.family.fixed "SauceCodePro Nerd Font Mono"
+
+  :set fonts.debug_console '20px "SauceCodePro Nerd Font"'
+
+
+  #
+  # Unselected Tab colors
+  #
+  :set colors.tabs.odd.bg #23211b
+  :set colors.tabs.odd.fg #9DE2DD
+  :set colors.tabs.even.bg #23211b
+  :set colors.tabs.even.fg #9DE2DD
+
+  #
+  # Selected Tab colors
+  #
+  :set colors.tabs.selected.even.bg #374241
+  :set colors.tabs.selected.even.fg #9DE2DD
+  :set colors.tabs.selected.odd.bg #374241
+  :set colors.tabs.selected.odd.fg #9DE2DD
+
+  #
+  # Pinned Tab colors
+  #
+  :set colors.tabs.pinned.odd.bg #ffe64d
+  :set colors.tabs.pinned.odd.fg #23211b
+  :set colors.tabs.pinned.even.bg #ffe64d
+  :set colors.tabs.pinned.even.fg #23211b
+
+  #
+  # Vertical bar indicator in the tab (most-left)
+  #
+  :set colors.tabs.indicator.stop #ffe64d
+#+END_SRC
+
+
+** Where is the configuration file
+
+=~/.config/qutebrowser/autoconfig.yml=
+
+Actuall, you can backup and restore this file with run all the above commands line-by-line in =qutebrowser=.
+
