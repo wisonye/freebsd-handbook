@@ -1,0 +1,273 @@
+* Bhyve Virtualization in =FreeBSD=
+
+=bhyve= is the hyprvisor in =FreeBSD=, and =vm_bhyve= is a frontend for =bhyve= which provides the =vm= command to manage the =bhyve= virtual machines.
+
+** Install and setup
+
+#+BEGIN_SRC bash
+  doas pkg install vm-bhyve-devel grub2-bhyve
+
+  # 
+  # Create a new ZFS dataset to hold all VM files
+  # 
+  doas zfs create -o mountpoint=/home/$USER/vm zroot/vm
+  doas chown -R $USER:$USER ~/vm/
+
+  #
+  # Load all related modules and settings
+  #
+  doas sysrc vmm_enable=YES
+  doas sysrc vm_enable=YES
+  doas sysrc vm_dir="zfs:zroot/vm"
+#+END_SRC
+
+
+** =vm init= and =tmux=
+
+=vm init= needs be run once after host reboot before running any other =vm= commands. The main function of the =init= command is as follows:
+
+o Load all necessary kernel modules if not already loaded
+o Set tap devices to come up automatically when opened
+o Create any configured virtual switches
+
+
+=vm init= also create subdirectories inside =$vm_dir= to hold configuration and templates:
+
+#+BEGIN_SRC bash
+  ls -lhta ~/vm
+
+  # total 11
+  # drwxr-xr-x   2 root  wison    4B Feb 21 16:37 .config/
+  # drwxr-xr-x   2 root  wison    3B Feb 21 15:44 .templates/
+  # drwxr-xr-x   6 wison wison    6B Feb 21 15:44 ./
+  # drwxr-xr-x   2 root  wison    2B Feb 21 15:44 .img/
+  # drwxr-xr-x   2 root  wison    2B Feb 21 15:44 .iso/
+  # drwxr-xr-x  22 wison wison   54B Feb 21 15:41 ../
+#+END_SRC
+
+
+By default, =vm-bhyve= uses =cu/nmdm= as a console session management tool. If you prefer to run virtual machines on a =tmux= session instead, this is now supported in v1.1+. All you need to do is to set console option in =$vm_dir/.config/system.conf=:
+
+#+BEGIN_SRC bash
+  vm set console=tmux
+#+END_SRC
+
+Once set, any new guests started will have a =tmux= session associated with them. The session name is the same as the guest name, although you can also attach it to the tmux session using the standard =vm console guest= command.
+
+For example:
+
+#+BEGIN_SRC bash
+  #
+  # vm list |grep fbsd
+  #
+  fbsd            default         bhyveload   2      256M      -                    No           Running (88761)
+
+  #
+  # tmux ls
+  #
+  fbsd: 1 windows (created Tue Jun 28 10:42:22 2016) [168x46]
+#+END_SRC
+
+
+So, you can use ~tmux attach-session -t fbsd~ and do a quick switch between different tmux sessions.
+
+
+** Create =public= virtual switch and attach your NIC to it
+
+#+BEGIN_SRC bash
+  doas vm switch create public
+
+  #
+  # Make sure to change `wlan0` to your correct NIC!!!
+  #
+  doas vm switch add public wlan0
+#+END_SRC
+
+After that, you can list your switch like this:
+
+#+BEGIN_SRC bash
+  #
+  # List all switches
+  #
+  doas vm switch list
+  # NAME    TYPE      IFACE      ADDRESS  PRIVATE  MTU  VLAN  PORTS
+  # public  standard  vm-public  -        no       -    -     wlan0
+
+  #
+  # Info the given switch, `public` is the virtual switch name
+  #
+  doas vm switch info public
+  # ------------------------
+  # Virtual Switch: public
+  # ------------------------
+  #   type: standard
+  #   ident: vm-public
+  #   vlan: -
+  #   physical-ports: wlan0 #   bytes-in: 0 (0.000B)
+  #   bytes-out: 720 (720.000B)
+
+#+END_SRC
+
+
+** Install =Fedora= guest
+
+*** Download minimal ISO
+
+Go to here to grab the ISO link:
+
+X86_64 - https://alt.fedoraproject.org/
+AARCH64 - https://alt.fedoraproject.org/alt/
+
+Then run =doas vm ISO_LINK_URL_HERE= to downlaod the ISO file into ~$vm_dir/.iso~ folder.
+
+After that, you can run =vm iso= to list all downloaded ISOs:
+
+#+BEGIN_SRC bash
+  doas vm iso
+  # DATASTORE           FILENAME
+  # default             Fedora-Everything-netinst-x86_64-39-1.5.iso
+#+END_SRC
+
+
+*** Create guest configuration 
+
+Place the following settings into  ~$vm_dir/.template/fedora.conf~:
+
+#+BEGIN_SRC bash
+  loader="bhyveload"
+  cpu="16"
+  memory="16G"
+  network0_type="virtio-net"
+  network0_switch="public"
+  disk0_type="virtio-blk"
+  disk0_name="disk0.img"
+  disk0_size="60G"
+
+  # graphics
+  # Set to a value other than [empty]/off/false/no/0 to enable
+  # the bhyve frame buffer device. This creates a graphics console
+  # in the guest, which is accessible using vnc
+  #
+  # By default this is set at 800x600, and we find an available vnc
+  # port starting at 5900. The port can be seen in vm list|info output.
+  #
+  graphics="yes"
+
+  # graphics_port
+  # Use this option to specify a fixed network port that the vnc service
+  # should listen on. If specifying port numbers manually, please make
+  # sure all guests have a unique port.
+  #
+  graphics_port="5999"
+
+  # graphics_listen
+  # By default, the vnc service will listen on 0.0.0.0, so you can connect by
+  # using any IP address assigned to the bhyve host. Use this option if you
+  # want to specify a specific IP address that the service should bind to
+  #
+  # Default: 0.0.0.0
+  #
+  # graphics_listen="10.0.0.1"
+
+  # graphics_res
+  # This allows you to specify a resolution for the graphical console.
+  # Pleas note only the below options are supported
+  #
+  # Default: 800x600
+  # Valid Options: 1920x1200,1920x1080,1600x1200,1600x900,1280x1024,1280x720,1024x768,800x600,640x480
+  #
+  graphics_res="1600x1200"
+
+  # graphics_wait
+  # Set to yes in order to make guest boot wait for the VNC console
+  # to be opened. This can help when installing operating systems
+  # that require immediate keyboard input (such as a timed 'enter setup'
+  # screen). The default setting of auto will add the wait option
+  # if the guest is run in install mode. Note that in auto mode
+  # the wait option will only be present on the first boot. If you
+  # need the guest to wait on every boot during install, the yes
+  # option should be used.
+  #
+  # Valid Options: no,yes,auto
+  #
+  graphics_wait="auto"
+
+  # graphics_vga
+  # valid options for this are on/off/io. io is the default
+  # please see the bhyve man page for details on this option
+  #
+  # graphics_vga="io"
+
+  # xhci_mouse
+  # When graphics are enabled, a PS2 mouse is created by default. This
+  # doesn't track very well, and can be replaced with an XHCI mouse
+  # by setting this option to yes. Please note only some guests support
+  # this mouse
+  #
+  xhci_mouse="yes"
+#+END_SRC
+
+All available settings are in =/usr/local/share/examples/vm-bhyve/config.sample=.
+
+
+*** Create guest VM
+
+#+BEGIN_SRC bash
+  #
+  # `-t fedora`: Use `$vm_dir/.template/fedora.conf` as template to create VM
+  # `-s 60GB`: Init 60GB virtual disk, override the `disk0.size` in config file
+  # `my-fedora`: VM name
+  #
+  doas vm create -t fedora my-fedora
+
+  #
+  # List created VM
+  #
+  doas vm list
+  # NAME       DATASTORE  LOADER     CPU  MEMORY  VNC  AUTO  STATE
+  # my-fedora  default    bhyveload  16   16G     -    No    Stopped
+
+  #
+  # Here is where the VM located
+  #
+  ls -lht ~/vm/my-fedora/
+  # total 6
+  # -rw-------  1 root wheel   60G Feb 21 17:34 disk0.img
+  # -rw-r--r--  1 root wheel  213B Feb 21 17:34 my-fedora.conf
+  # -rw-r--r--  1 root wheel   94B Feb 21 17:34 vm-bhyve.log
+#+END_SRC
+
+
+=~/vm/my-fedora/my-fedora.conf= is a copy of the given template with the newly added =uuid= and unique NIC mac address:
+
+#+BEGIN_SRC bash
+  bat ~/vm/my-fedora/my-fedora.conf
+
+  # loader="bhyveload"
+  # cpu=16
+  # memory=16G
+  # network0_type="virtio-net"
+  # network0_switch="public"
+  # disk0_type="virtio-blk"
+  # disk0_name="disk0.img"
+  # graphics="yes"
+  # graphics_port="5999"
+  # graphics_res="1600x1200"
+  # graphics_wait="auto"
+  # xhci_mouse="yes"
+  # uuid="8634213c-d072-11ee-a383-5847ca7014b5"
+  # network0_mac="58:9c:fc:03:d8:0d"
+#+END_SRC
+
+
+Now, let's install Fedora:
+
+If you're currently inside a tmux session, then you HAVE TO detech or open a new terminal before running the following command, as it will start a new tmux and attach into it immediately.
+
+#+BEGIN_SRC bash
+  #
+  # `-f`: Guest will be started in the foreground on stdio. 
+  # `-i`: Starts the guest in interactive mode on a foreground tmux session. 
+  #
+  doas vm install -fi my-fedora Fedora-Everything-netinst-x86_64-39-1.5.iso
+#+END_SRC
