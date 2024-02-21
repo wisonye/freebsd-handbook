@@ -1,0 +1,354 @@
+* C/C++
+
+Official doc: [[https://docs.freebsd.org/en/books/developers-handbook/tools/#tools-compiling][Compiling with cc]]
+
+** Pre-installed C/C++ compiler
+
+In =FreeBSD=, you don't need to install any =build-base/build-essential= package for coding, as =LLVM (clang/clang++)= installed with the FreeBSD =base= system.
+
+Starting with FreeBSD 10.X =clang= is installed as =cc=; the GNU compiler =lang/gcc= is available in the Ports Collection.
+
+#+BEGIN_SRC bash
+  ls -lht /usr/bin/{cc,c++,clang,clang++}
+
+  # -r-xr-xr-x  6 root wheel   98M Feb 15 15:12 /usr/bin/c++*
+  # -r-xr-xr-x  6 root wheel   98M Feb 15 15:12 /usr/bin/cc*
+  # -r-xr-xr-x  6 root wheel   98M Feb 15 15:12 /usr/bin/clang*
+  # -r-xr-xr-x  6 root wheel   98M Feb 15 15:12 /usr/bin/clang++*
+#+END_SRC
+
+
+For the =clangd= (C/C++ language server), it's NOT in the =/usr/bin=. It goes to =/usr/local/llvmXX/bin= which the =XX= is version number, you can confirm that version by running the following command:
+
+#+BEGIN_SRC bash
+  pkg info --all | rg llvm
+
+  # llvm15-15.0.7_10               LLVM and Clang
+  # llvm16-16.0.6_10               LLVM and Clang
+#+END_SRC
+
+That means =clangd= located in =/usr/local/llvm16/bin=, put it to your =$PATH=.
+
+
+** Basic compiler options:
+
+*** =-o= 
+
+Write to ouput file, otherwise, output to =a.out= by default.
+
+*** =-std=<standard>=
+
+Specify the language standard to compile for. For example: =-std=c++14=
+
+*** =-stdlib=<library>=
+
+Specify the C++ standard library to use, supported options are =libstdc++= and =libc++.= If not specified, platform default will be used. 
+
+For example: =-stdlib=libstdc++=
+
+*** =-ansi=
+
+Same as =-std=c89=
+
+*** =-O0, -O1, -O2, -O3, -Ofast, -Os, -Oz, -Og, -O, -O4=
+
+Specify which optimization level to use, =-O0= Means =no optimization=: this level compiles the fastest and generates the most debuggable code.
+
+=-O= Equivalent to =-O1=.
+
+*** -=Wall=
+
+Enable all the warnings which the authors of =cc= believe are worthwhile. Despite the name, it will not enable all the warnings =cc= is capable of.
+
+*** =-llibrary=
+
+Specify a function library to be used at =link= time. The rule is that if the library is called =libsomething.a=, you give =cc= the argument =-lsomething= (without =lib= and extension part).
+
+For example, the =math= library is =libm.a=, so you give =cc= the argument =-lm=.
+
+*** =-pedantic-errors=
+
+Error on language extensions. It requests to produce an error if a feature from a later standard revision is used in an earlier mode.
+
+For example if you use =-std=c99= standard to compile your code, but you use =_Generic= which only supported from =C11=, then =clang= will stop on that error. This is very good for you to know which C standard you should use or forbidden some features in your code.
+
+
+** Try to compile your C++ code
+
+For example, here is the sample =C++= source code, save it as =main.cpp=:
+
+#+BEGIN_SRC cpp
+  //
+  // How to compile and run this program?
+  //
+  // clang++ -Wall -O -std=c++17 -stdlib=libc++ -lm main.cpp -o test && ./test
+  //
+  // Because `<cmath>` library is in the system default library path (`/lib/`),
+  // so you don't need to use `-lm` explicitly, linker (clang++) will find it at
+  // link time automatic:
+  // clang++ -Wall -O -std=c++17 -stdlib=libc++ main.cpp -o test && ./test
+  //
+  #include <cstdint>
+  #include <iostream>
+  #include <cmath>
+
+  using namespace std;
+
+  //
+  //
+  //
+  int add_together(int number_one, int number_2) {
+      return number_one + number_2;
+  }
+
+  //
+  //
+  //
+  void show_info(char *name) {}
+
+  //
+  //
+  //
+  int main() {
+      cout << "Hi, I'm Wison:)" << endl;
+
+      uint8_t my_version = 0xFF;
+      bool is_success = true;
+
+      if (is_success) {
+          cout << "'is_success' is equal to 'true'!!!\n\n";
+      }
+
+      show_info((char *)"asfasdf");
+
+      int add_result = add_together(45, -99);
+      cout << add_result << "\n\n";
+
+      //
+      // C++14 feature
+      //
+      auto return_value_itself = [](auto x) { return x; };
+
+      int int_value = return_value_itself(888);
+      string string_value = return_value_itself("Wison Ye");
+
+      cout << "int_value :" << int_value << "\n";
+      cout << "string_value :" << string_value << "\n";
+
+      // `sqrt` comes from `<cmath>` (/usr/lib/libm.o)
+      cout << "square root result :" << sqrt(100) << endl;
+
+      return 0;
+  }
+#+END_SRC
+
+Then compile and run the program with the follow command:
+
+#+BEGIN_SRC bash
+  clang++ -Wall -O -std=c++17 -stdlib=libc++ main.cpp -o test && ./test
+#+END_SRC
+
+
+
+** How to compile any =C/C++= project (from simple to complex level ) with =cmake=
+
+=CMake= is cross-platform free and open-source software for build automation, testing, packaging and installation of software by using a compiler-independent method. =CMake= is not a build system itself.
+
+It generates some kind of the portable make files that is able to build by any suitable IDE or CLI environment, super useful.
+
+Here are the regular steps that how to use it:
+
+*** Create the following folder structure:
+
+#+BEGIN_SRC bash
+  .
+  ├── .clang-format
+  ├── .gitignore
+  ├── CMakeLists.txt
+  ├── build
+  └── src
+      └── main.cpp
+#+END_SRC
+
+
+*** =CMakeLists.txt= with the following settings:
+
+#+BEGIN_SRC bash
+  cmake_minimum_required(VERSION "3.22")
+
+  # Indicate the compliation environment (Host OS and CPU Arch)
+  # set(CMAKE_SYSTEM_NAME Linux)
+  # set(CMAKE_SYSTEM_PROCESSOR x86_64)
+
+  #
+  # Generate `compile_commands.json` for editor LSP needed
+  #
+  set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+
+  #
+  # Compiler and linker
+  #
+  # In `FreeBSD` `cc` and `c++` is the same with `clang` and `clang++`
+  # set(CMAKE_C_COMPILER /usr/bin/cc)
+  # set(CMAKE_CXX_COMPILER /usr/bin/c++)
+  # set(CMAKE_C_COMPILER /usr/bin/clang)
+  # set(CMAKE_CXX_COMPILER /usr/bin/clang++)
+
+  #
+  # Debug or Release
+  #
+  # set(CMAKE_BUILD_TYPE "Debug")
+  set(CMAKE_BUILD_TYPE "Release")
+
+  #
+  # Compile flags
+  #
+  set(CMAKE_C_FLAGS "-pedantic-errors -ansi -Wextra -Wall -Werror -std=gnu2x")
+  set(CMAKE_CXX_FLAGS "-pedantic-errors -Wextra -Wall -Werror -stdlib=libc++ -std=gnu++20")
+
+  #
+  # Project name
+  #
+  project("demo")
+
+  #
+  # Find installed libraries as compilation dependencies
+  # https://cmake.org/cmake/help/latest/command/find_package.html
+  #
+  # find_package(raylib REQUIRED)
+
+  #
+  # Extra include path for `c_utils`
+  #
+  # include_directories("~/my-installed/include/c_utils")
+  # link_directories("~/my-installed/lib")
+
+  #
+  # Executable
+  #
+  add_executable("${PROJECT_NAME}" "src/main.cpp")
+
+  #
+  # Link to system (or third-party) libraries
+  #
+  # target_link_libraries("${PROJECT_NAME}" m)
+  # target_link_libraries("${PROJECT_NAME}" raylib)
+
+  #
+  # Define macros for conditional compilation
+  #
+  target_compile_definitions("${PROJECT_NAME}" PRIVATE ENABLE_DEBUG_LOG)
+
+  #
+  # Debug log
+  #
+  message(">>> CMAKE_EXPORT_COMPILE_COMMANDS: ${CMAKE_EXPORT_COMPILE_COMMANDS}")
+  message(">>> CMAKE_SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}")
+  message(">>> CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
+  message(">>> CMAKE_C_COMPILER: ${CMAKE_C_COMPILER}")
+  message(">>> CMAKE_C_FLAGS: ${CMAKE_C_FLAGS}")
+  message(">>> CMAKE_C_FLAGS_DEBUG: ${CMAKE_C_FLAGS_DEBUG}")
+  message(">>> CMAKE_C_FLAGS_RELEASE: ${CMAKE_C_FLAGS_RELEASE}")
+  message(">>> CMAKE_CXX_COMPILER: ${CMAKE_CXX_COMPILER}")
+  message(">>> CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
+  message(">>> CMAKE_CXX_FLAGS_DEBUG: ${CMAKE_CXX_FLAGS_DEBUG}")
+  message(">>> CMAKE_CXX_FLAGS_RELEASE: ${CMAKE_CXX_FLAGS_RELEASE}")
+  message(">>> raylig_FOUND: ${raylib_FOUND}")
+#+END_SRC
+
+
+*** Put some code into =src/main.cpp=
+
+*** Put settings to =.gitignore=
+
+#+BEGIN_SRC bash
+  build
+  .cache
+#+END_SRC
+
+
+*** Optionally, you can put the following settings to =.clang-format= if you want control the code format
+
+#+BEGIN_SRC bash
+  #---------------------------------------------------------------------------
+  #
+  # Detail options: https://clang.llvm.org/docs/ClangFormatStyleOptions.html
+  #
+  #---------------------------------------------------------------------------
+
+  ---
+  # `BaseOnStyle` options:
+  # `LLVM` A style complying with the LLVM coding standards
+  #
+  # `Google` A style complying with Google’s C++ style guide
+  #
+  # `Chromium` A style complying with Chromium’s style guide
+  #
+  # `Mozilla` A style complying with Mozilla’s style guide
+  #
+  # `WebKit` A style complying with WebKit’s style guide
+  #
+  # `Microsoft` A style complying with Microsoft’s style guide
+  #
+  # `GNU` A style complying with the GNU coding standards
+  BasedOnStyle: Google
+  ColumnLimit: 80
+  IndentWidth: 4
+  PPIndentWidth: 4
+  IndentPPDirectives: BeforeHash
+  AlignAfterOpenBracket: Align
+  # AlignAfterOpenBracket: AlwaysBreak
+  AllowAllParametersOfDeclarationOnNextLine: false
+  AllowShortFunctionsOnASingleLine: Inline
+  BinPackArguments: false
+  BinPackParameters: false
+#+END_SRC
+
+
+*** Run the following commands to build and run your program
+
+#+BEGIN_SRC bash
+  # Make sure you're in the project root folder
+
+  #
+  # Create and cd into the `build` folder
+  #
+  mkdir build && cd build
+
+  #
+  # Generate make files into `build` folder
+  #
+  # Generate the `compile_commands.json` for `clangd_extensions` neovim plugin
+  #
+  cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 ..
+
+  #
+  # Make sure you're in `build` folder, build the entire project and run
+  # the binary every time after making change to any source code.
+  #
+  make && ./demo
+#+END_SRC
+
+
+** Terms
+
+*** =make=
+
+Powerful program to compile C/C++ files define in =makefile/Makefile/MAKEFILE=. It always look at the first target (which follow by a =:=) if you don't provide any =target= as argument.
+
+The usual way to compile and install a program is by running =make && make install=.
+
+=install= target means copy all binaries to the default binary path, e.g. =/usr/bin=.
+
+If you want to uninstall/remove all copied binaries, run =make uninstall=.
+
+If you want to clean all compiled binaries and object files, run =make clean=.
+
+
+*** =gmake=: GNU make
+
+*** =lldb=: LLVM debugger, FreeBSD default debugger
+
+*** =gdb=: GNU debugger
+
+*** =clangd=: A language server that provides IDE-like features to editors.
