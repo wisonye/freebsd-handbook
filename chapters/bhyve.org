@@ -5,20 +5,24 @@
 ** Install and setup
 
 #+BEGIN_SRC bash
-  doas pkg install vm-bhyve-devel grub2-bhyve
+   #
+   # `grub2-bhyve`: If want Linux guest
+   # `bhyve-firmware`: If you want UEFI and VNC graphic support
+   #
+   doas pkg install vm-bhyve-devel grub2-bhyve bhyve-firmware
 
-  # 
-  # Create a new ZFS dataset to hold all VM files
-  # 
-  doas zfs create -o mountpoint=/home/$USER/vm zroot/vm
-  doas chown -R $USER:$USER ~/vm/
+   # 
+   # Create a new ZFS dataset to hold all VM files
+   # 
+   doas zfs create -o mountpoint=/home/$USER/vm zroot/vm
+   doas chown -R $USER:$USER ~/vm/
 
-  #
-  # Load all related modules and settings
-  #
-  doas sysrc vmm_enable=YES
-  doas sysrc vm_enable=YES
-  doas sysrc vm_dir="zfs:zroot/vm"
+   #
+   # Load all related modules and settings
+   #
+   doas sysrc vmm_enable=YES
+   doas sysrc vm_enable=YES
+   doas sysrc vm_dir="zfs:zroot/vm"
 #+END_SRC
 
 
@@ -134,7 +138,16 @@ After that, you can run =vm iso= to list all downloaded ISOs:
 Place the following settings into  ~$vm_dir/.template/fedora.conf~:
 
 #+BEGIN_SRC bash
-  loader="bhyveload"
+  #
+  # loader
+  # Specify the loader to use for the guest. This can either be
+  # one of the original bhyve loaders (bhyveload/grub), or
+  # you can specify to use uefi firmware to load the guest
+  #
+  # Valid Options: bhyveload,grub,uefi,uefi-csm
+  #
+  loader="uefi"
+
   cpu="16"
   memory="16G"
   network0_type="virtio-net"
@@ -260,7 +273,81 @@ All available settings are in =/usr/local/share/examples/vm-bhyve/config.sample=
 #+END_SRC
 
 
+Also, you can list the vm info like this:
+
+#+BEGIN_SRC bash
+  doas vm info my-fedora
+
+  # ------------------------
+  # Virtual Machine: my-fedora
+  # ------------------------
+  #   state: stopped
+  #   datastore: default
+  #   loader: uefi
+  #   uuid: d7aa0d01-d080-11ee-812f-5847ca7014b5
+  #   cpu: 16
+  #   memory: 16G
+
+  #   network-interface
+  #     number: 0
+  #     emulation: virtio-net
+  #     virtual-switch: public
+  #     fixed-mac-address: 58:9c:fc:05:f8:6a
+  #     fixed-device: -
+
+  #   virtual-disk
+  #     number: 0
+  #     device-type: file
+  #     emulation: virtio-blk
+  #     options: -
+  #     system-path: /home/wison/vm/my-fedora/disk0.img
+  #     bytes-size: 64424509440 (60.000G)
+  #     bytes-used: 1024 (1.000K)
+#+END_SRC
+
+
+If you want to re-create a VM, you can run ~doas vm destroy my-fedora~ to delete it and re-create again.
+
+
+*** Launch the install process
+
+First, you need a VNC client to connecto the guest VNC server, let's install it:
+
+#+BEGIN_SRC bash
+  #
+  # `wlvncc`: A work-in-progress implementation of a Wayland native VNC client. 
+  #
+  doas install wlvncc
+#+END_SRC
+
 Now, let's install Fedora:
+
+#+BEGIN_SRC bash
+  #
+  # `-f`: Guest will be started in the foreground on stdio. 
+  #
+  doas vm install -f my-fedora Fedora-Everything-netinst-x86_64-39-1.5.iso
+#+END_SRC
+
+
+After that, list the VNC port and connect to it to finish the installation process:
+
+#+BEGIN_SRC bash
+  #
+  # List guest vnc port
+  #
+  doas vm list
+  # NAME       DATASTORE  LOADER  CPU  MEMORY  VNC           AUTO  STATE
+  # my-fedora  default    uefi    16   16G     0.0.0.0:5999  No    Locked (th80)
+
+  #
+  # Connect to it (as it will wait for the VNC connect before ISO boot)
+  #
+  wlvncc 127.0.0.1 5999
+#+END_SRC
+
+
+*** Run and stop and related VM stuff
 
 If you're currently inside a tmux session, then you HAVE TO detech or open a new terminal before running the following command, as it will start a new tmux and attach into it immediately.
 
@@ -269,5 +356,12 @@ If you're currently inside a tmux session, then you HAVE TO detech or open a new
   # `-f`: Guest will be started in the foreground on stdio. 
   # `-i`: Starts the guest in interactive mode on a foreground tmux session. 
   #
-  doas vm install -fi my-fedora Fedora-Everything-netinst-x86_64-39-1.5.iso
+  doas vm start -fi my-fedora
+  doas vm stop my-fedora
+
+  #
+  # Force to power off when needed
+  #
+  doas vm poweroff -f my-fedora
 #+END_SRC
+
