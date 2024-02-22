@@ -85,8 +85,8 @@ After launching =qutebrowser=, run the following command to customize my key bin
   #
   # `M` open current url in `mpv`
   #
-  :bind M spawm mpv {url}
-  # :bind M hint links spawm mpv {hint-url}
+  :bind M spawn mpv {url}
+  :bind M hint --add-history links spawn mpv {hint-url}
 
   #
   # Yanking relate
@@ -105,6 +105,11 @@ After launching =qutebrowser=, run the following command to customize my key bin
   #
   :bind dt devtools
   :bind df devtools-focus
+
+  #
+  # Selected text to Google Translate
+  #
+  :bind gt :spawn --userscript ~/.config/qutebrowser/scripts/google_translate.sh
 #+END_SRC
 
 You can run ~:bind~ to show all key bindings at any given time.
@@ -172,10 +177,10 @@ Here are my favorite settings:
   #
   # Selected Tab colors
   #
-  :set colors.tabs.selected.even.bg #374241
-  :set colors.tabs.selected.even.fg #9DE2DD
-  :set colors.tabs.selected.odd.bg #374241
-  :set colors.tabs.selected.odd.fg #9DE2DD
+  :set colors.tabs.selected.even.bg #718885
+  :set colors.tabs.selected.even.fg #23211b
+  :set colors.tabs.selected.odd.bg #718885
+  :set colors.tabs.selected.odd.fg #23211b
 
   #
   # Pinned Tab colors
@@ -198,3 +203,90 @@ Here are my favorite settings:
 
 Actuall, you can backup and restore this file with run all the above commands line-by-line in =qutebrowser=.
 
+
+
+** Userscript: =extension= concept in other browsers
+
+All details are in [[https://github.com/qutebrowser/qutebrowser/blob/main/doc/userscripts.asciidoc][here]].
+
+*** Available env vars inside your userscript
+
+[ Common ]
+=QUTE_MODE=: Either hints (started via hints) or command (started via command or key binding).
+=QUTE_USER_AGENT=: The currently set user agent, if customized.
+=QUTE_FIFO=: The FIFO or file to write commands to.
+=QUTE_HTML=: Path of a file containing the HTML source of the current page.
+=QUTE_TEXT=: Path of a file containing the plaintext of the current page.
+=QUTE_CONFIG_DIR=: Path of the directory containing qutebrowser’s configuration.
+=QUTE_DATA_DIR=: Path of the directory containing qutebrowser’s data.
+=QUTE_DOWNLOAD_DIR=: Path of the downloads directory.
+=QUTE_COMMANDLINE_TEXT=: Text currently in qutebrowser’s command line. Note this is only useful for userscripts spawned (e.g. via a keybinding) when qutebrowser is still in command mode. If you want to receive arguments passed to your userscript via :spawn, use the normal way of getting commandline arguments (e.g. $@ in bash or sys.argv / argparse / …​ in Python).
+=QUTE_VERSION=: The version of qutebrowser, as a string like "2.0.0". Note that this was added in v2.0.0, thus older versions can only be detected by the absence of this variable.
+
+[ In command mode ]
+=QUTE_URL=: The current page URL.
+=QUTE_TITLE=: The title of the current page.
+=QUTE_SELECTED_TEXT=: The text currently selected on the page.
+=QUTE_COUNT=: The count from the spawn command running the userscript.
+=QUTE_TAB_INDEX=: The current tab’s index.
+
+[ In hints mode ]
+=QUTE_URL=: The URL selected via hints.
+=QUTE_CURRENT_URL=: The current page URL.
+=QUTE_SELECTED_TEXT=: The plain text of the element selected via hints.
+=QUTE_SELECTED_HTML=: The HTML of the element selected via hints.
+
+
+*** Define a userscript
+
+Place the following content into =~/.config/qutebrowser/scripts/google_translate.sh=:
+
+#+BEGIN_SRC bash
+  #!/usr/local/bin/bash
+  #------------------------------------------------------------------------------------------
+  # Get the selected text and open GoogleTranslate URL to a new tab
+  #------------------------------------------------------------------------------------------
+  echo "open -t https://translate.google.com/?sl=en&tl=zh-CN&text=$QUTE_SELECTED_TEXT&op=translate" >> "$QUTE_FIFO"
+
+  #------------------------------------------------------------------------------------------
+  # This is the ideal way:
+  #
+  # Get the selected text and somehow call GoogleTranslate API to get back the result,
+  # and use `:message-warning` command to display the translate result as a message inside
+  # `qutebrowser`.
+  #------------------------------------------------------------------------------------------
+  # SELECTED=$QUTE_SELECTED_TEXT
+  # TRANSLATE_RESULT=`https://translate.google.com/?sl=en&tl=zh-CN&text=$SELECTED&op=translate`
+  # echo "message-warning '$TRANSLATE_RESULT'" >> "$QUTE_FIFO"
+#+END_SRC
+
+Make sure ~chmod +x~ to that file!!!
+
+
+*** Call a userscript
+
+There are 2 common ways to call a userscript:
+
+#+BEGIN_SRC bash
+  #
+  # Directly run your userscript in command mode
+  #
+  :spawn --userscript
+
+  #
+  # Bind XXX to run your userscript
+  #
+  :bind XXX spawn --userscript
+
+  #
+  # Bind XXX to show a hint and run your userscript on the {hint-url}
+  #
+  :bind XXX hint links userscript
+#+END_SRC
+
+
+Example to bind the =google_translate.sh= userscript to ~gt~
+
+#+BEGIN_SRC bash
+  :bind gt :spawn --userscript ~/.config/qutebrowser/scripts/google_translate.sh
+#+END_SRC
