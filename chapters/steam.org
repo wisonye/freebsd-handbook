@@ -1,0 +1,180 @@
+E Steam
+
+** Install linux steam wrapper and linux compatibility packages
+
+#+BEGIN_SRC bash
+  doas pkg install linux-steam-utils
+#+END_SRC
+
+
+*** Enable =linux= service
+
+#+BEGIN_SRC bash
+  doas sysrc linux_enable=YES
+#+END_SRC
+
+You can have a look at ~/etc/rc.d/linux~ script, it does the following things:
+
+- Load =linux/linux64= kernel modules
+
+- Mount the following filesystems into =/compat/linux= folder:
+
+  #+BEGIN_SRC bash
+    devfs   /compat/linux/dev  devfs       rw      0       0
+    fdescfs   /compat/linux/fd  fdescfs       rw,linrdlnk      0       0
+    linprocfs   /compat/linux/proc  linprocfs       rw      0       0
+    linsysfs    /compat/linux/sys   linsysfs        rw      0       0
+    tmpfs    /compat/linux/dev/shm  tmpfs   rw,mode=1777    0       0
+  #+END_SRC
+
+    If you don't want the automount, you can run this to stop that behaviour:
+
+    #+BEGIN_SRC bash
+      doas sysrc linux_mounts_enable=NO
+    #+END_SRC
+
+    By the way, Filesystems mounted by the ~/etc/rc.d/linux~ script will not work for Linux processes inside =chroots= or =jails=; if needed, you have to configure them in =/etc/fstab=.
+
+
+*** Reboot to take affect
+
+
+** Setup
+
+After you install =linux-steam-utils=, you will see the following hints:
+
+#+BEGIN_SRC bash
+  Install them as occasion demands.
+  =====
+  Message from liberation-fonts-ttf-2.1.5,2:
+
+  --
+  You can start using the fonts by following these instructions:
+
+  Add the following line to the "Files" section of your x.org configuration file:
+
+          FontPath "/usr/local/share/fonts/Liberation/"
+  =====
+  Message from linux-steam-utils-20231009:
+
+  --
+  Please note, this is an unofficial wrapper for the Steam client
+  and as such it is supported on a best effort basis.
+
+  Limitations:
+
+  - Sandbox is disabled for the web browser component.
+  - Valve Anti-Cheat doesn't work with FreeBSD < 13.
+  - No controller input, no streaming, no VR.
+  - No support for Linux Proton builds.
+
+  Additional dependencies:
+  - If you use an NVIDIA card, you need to install a suitable
+    x11/linux-nvidia-libs(-xxx) port.
+
+  Steam setup:
+
+  1. Create a dedicated FreeBSD non-wheel user account for Steam. Switch to it.
+  2. Run `steam-install` to download the Steam bootstrap executable.
+  3. Run `steam` to download updates and start Steam.
+
+  For the list of tested Linux games see https://github.com/shkhln/linuxulator-steam-utils/wiki/Compatibility.
+
+  Native Proton setup (optional, semi-experimental):
+
+  1. Run `sudo pkg install wine-proton libc6-shim python3`.
+  2. Run `/usr/local/wine-proton/bin/pkg32.sh install wine-proton mesa-dri`.
+  3. In Steam install Proton 8.0 (appid 2348590).
+  4. Run `lsu-register-proton` to register emulators/wine-proton as a compatibility tool.
+  5. Restart Steam.
+
+  To enable emulators/wine-proton right click a game title in Steam,
+#+END_SRC
+
+So, here are the steps you need to do one-by-one:
+
+
+*** Create =steam= user
+
+Make sure put new user into =video= group!!!
+Make sure put new user into =video= group!!!
+Make sure put new user into =video= group!!!
+
+#+BEGIN_SRC bash
+  doas adduser
+
+  # Username: steam
+  # Full name: Steam
+  # Uid (Leave empty for default):
+  # Login group [steam]:
+  # Login group is steam. Invite steam into other groups? []: video
+  # Login class [default]:
+  # Shell (sh csh tcsh bash rbash fish git-shell nologin) [sh]:
+  # Home directory [/home/steam]:
+  # Home directory permissions (Leave empty for default):
+  # Use password-based authentication? [yes]:
+  # Use an empty password? (yes/no) [no]:
+  # Use a random password? (yes/no) [no]:
+  # Enter password:
+  # Enter password again:
+  # Lock out the account after creation? [no]:
+  # Username   : steam
+  # Password   : *****
+  # Full Name  : Steam
+  # Uid        : 1002
+  # Class      :
+  # Groups     : steam video
+  # Home       : /home/steam
+  # Home Mode  :
+  # Shell      : /bin/sh
+  # Locked     : no
+  # OK? (yes/no) [yes]:
+  # adduser: INFO: Successfully added (steam) to the user database.
+  # Add another user? (yes/no) [no]:
+  # Goodbye!
+#+END_SRC
+
+
+*** Creaetr =/var/lib/dbus/machine-id=
+
+#+BEGIN_SRC bash
+  doas mkdir -p /var/lib/dbus 
+  doas /usr/local/bin/dbus-uuidgen --ensure=/var/lib/dbus/machine-id
+#+END_SRC
+
+
+*** Switch to =steam= user
+
+You have to re-login with =steam= user and start a new =hyprland= process (environment) to make it work!!!
+You have to re-login with =steam= user and start a new =hyprland= process (environment) to make it work!!!
+You have to re-login with =steam= user and start a new =hyprland= process (environment) to make it work!!!
+
+That means you need to copy your current user's =shell/hyprland/waybar= or related configuration to =/home/steam/.config= to make it run hyprland correctly:)
+
+
+*** Run =steam-install= to download the Steam bootstrap executable.
+
+After you started =hyprland= as =steam= user, then run this:
+
+#+BEGIN_SRC bash
+  $ steam-install
+
+  # Downloading Steam...
+  # fetch: http://repo.steampowered.com/steam/pool/steam/s/steam/steam_1.0.0.75.tar.gz: Not Found
+  # steam_1.0.0.75.tar.gz                                 3534 kB 1817 kBps    02s
+  # Extracting bootstrap...
+  # Creating symlink root -> steam
+  # Creating symlink bin32 -> steam/ubuntu12_32
+  # Creating symlink bin64 -> steam/ubuntu12_64
+  # Creating symlink sdk32 -> steam/linux32
+  # Creating symlink sdk64 -> steam/linux64
+#+END_SRC
+
+
+*** Run =steam= to download updates and start Steam.
+
+And run this:
+
+#+BEGIN_SRC bash
+  steam
+#+END_SRC

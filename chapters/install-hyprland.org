@@ -16,7 +16,7 @@ Access to =/dev/dri= is needed to allow 3D acceleration on video cards.
 
     # Confirm
     groups wison
-    # wison whell video
+    # wison wheel video
 #+END_SRC
 
 
