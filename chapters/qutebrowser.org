@@ -125,6 +125,15 @@ Here are my favorite settings:
 
 #+BEGIN_SRC bash
   #
+  # To open your previous tabs when you reopen qutebrowser, it has 2 conditions:
+  #
+  # 1. `:set auto_save.session true`
+  #
+  # 2. You use `:wq` (save and quit) to quit qutebrowser, `Cmd+q` to quit won't restore opened tabs!!!
+  #
+  :set auto_save.session true
+
+  #
   # Update the adblock list
   #
   :adblock-update
@@ -135,10 +144,11 @@ Here are my favorite settings:
   :set colors.webpage.darkmode.enabled true
 
   #
-  # Start page and default page
+  # Start page and default page and default search engine
   #
   :set url.start_pages "https://www.google.co.nz"
   :set url.default_page "https://www.google.co.nz"
+  :config-dict-add --replace url.searchengines DEFAULT https://google.co.nz/search?q={}
 
   #
   # Tabs on bottom
