@@ -31,6 +31,7 @@
 *** [[file:chapters/fonts.org][fonts]]
 *** [[file:chapters/neovim.org][Neovim]]
 *** [[file:chapters/emacs.org][Emacs]]
+*** [[file:chapters/mpv.org][mpv]]
 *** [[file:chapters/qutebrowser.org][Qutebrowser]]
 *** [[file:chapters/google_cloud_sdk.org][Google cloud SDK]]
 *** [[file:chapters/lf.org][Lf]]

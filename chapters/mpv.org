@@ -1,0 +1,108 @@
+* mpv - Open source video player
+
+** Install
+
+=yt-dlp=: A command-line program to download videos from youtube.com and many other video platforms. It's a fork of =youtube-dlc= which is inturn a fork of =youtube-dl=.
+
+
+#+BEGIN_SRC bash
+  doas pkg install mpv yt-dlp
+#+END_SRC
+
+
+** Keyboard control
+
+| Keybinding   | Description                                       |
+|--------------+---------------------------------------------------|
+| =9=  / =0=       | Volume down/up                                    |
+| =<= / =>==       | Switch to previous/next track in playlist         |
+| =m=            | Toggle mute/unmute                                |
+| =space=        | Pause/unpause                                     |
+| =left= / =right= | Seek back-forward/forward 5 seconds               |
+| =[= / =]=        | Decrease/increase current playback speed by 10%.= |
+| =backspace=    | Reset playback speed to normal                    |
+| =I=            | Toggle stats info                                 |
+| =L=            | Toggle infinite loop                              |
+| =s=            | Take a screenshot                                 |
+| =S=            | Take a screenshto without subtitles               |
+|              |                                                   |
+
+
+** Useful options
+
+#+BEGIN_SRC bash
+  mpv \
+    --ytdl \
+    --script-opts=try_ytdl_first=yes \
+    --ytdl-raw-options="format-sort=res:1080" \
+    --cache=yes --cache-pause=no --demuxer-readahead-secs=30 \
+    --demuxer-seekable-cache=yes \
+    YOUTU_URL
+#+END_SRC
+
+
+*** =--ytdl=
+
+Use youtube downloader, enabled by default.
+
+
+*** =--script-opts=try_ytdl_first=yes=
+
+Try to use =yt-dlp= first if possible.
+
+
+*** =--cache=yes --cache-pause=no --demuxer-readahead-secs=30 --demuxer-seekable-cache=yes=
+
+Cache more, for smoothly playback, very important!!!
+
+
+*** =--ytdl-raw-options="format-sort=res:1080"=
+
+Pass raw options to =yt-dlp=, options come from =man yt-dlp= and you don't need to pass the first =--=.
+
+For example:
+
+=--format-sort= becomes =format-sort=
+
+**** Resolution limit
+
+By default, =mpv= use ~--ytdl-format==""~ option, it equals to pass =-f ""= or =--format ""= to =yt-dlp= which means use the best video and best audio is possible.
+
+
+But I prefer use =1080p= as maximum resolution, that's why I pass =--format-sort==res:1080=. it means: ~prefers larger videos, but no larger than 1080p and the smallest video if there are no videos less than 1080p~.
+
+
+**** How to list all support format for the given youtube video
+
+#+BEGIN_SRC bash
+  yt-dlp -F "https://www.youtube.com/watch?v=w8fKXsGjSWw"
+#+END_SRC
+
+
+
+** Useful preset mpv commands in my fish configuration
+
+#+BEGIN_SRC fish
+  #
+  # Best video and audio quality
+  #
+  abbr mpvh "mpv --ytdl --script-opts=try_ytdl_first=yes --ytdl-format=ytdl"
+
+  #
+  # Middle video and audio quality
+  #
+  abbr mpv  "mpv --ytdl --script-opts=try_ytdl_first=yes --ytdl-format=best"
+
+  #
+  # Low video and audio quality
+  #
+  abbr mpvl "mpv --ytdl --script-opts=try_ytdl_first=yes --ytdl-format=worst"
+
+  #
+  # Download best audio only (no video)!!!
+  #
+  abbr yda "yt-dlp -f ba "
+#+END_SRC
+
+
+For more supported format options, =man yt-dlp= and then search for ~FORMAT SELECTION~.

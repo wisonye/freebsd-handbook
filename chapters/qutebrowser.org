@@ -85,8 +85,8 @@ After launching =qutebrowser=, run the following command to customize my key bin
   #
   # `M` open current url in `mpv`
   #
-  :bind M spawn mpv {url}
-  :bind M hint --add-history links spawn mpv {hint-url}
+  :bind M spawn mpv --ytdl-raw-options="format-sort=res:1080" --cache=yes --cache-pause=no --demuxer-readahead-secs=30 --demuxer-seekable-cache=yes {url}
+  :bind M hint --add-history links spawn mpv --ytdl-raw-options="format-sort=res:1080" --cache=yes --cache-pause=no --demuxer-readahead-secs=30 --demuxer-seekable-cache=yes {hint-url}
 
   #
   # Yanking relate
