@@ -209,6 +209,15 @@ Here are my favorite settings:
 
 ** Where is the configuration file
 
+You can open a tab with =qute://version= and search for =config= to see all config related settings.
+
+*** MacOS
+
+If you install =qutebrowser= via =brew install qutebrowser=, then it's =~/.qutebrowser= folder but for the =autoconfig.yml=, it's in =Users/wison/Library/Preferences/qutebrowser= by default!!!
+
+
+*** Non-macos
+
 =~/.config/qutebrowser/autoconfig.yml=
 
 Actuall, you can backup and restore this file with run all the above commands line-by-line in =qutebrowser=.
