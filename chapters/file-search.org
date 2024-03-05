@@ -1,0 +1,199 @@
+* File search and full-text search
+
+** File search
+
+*** fd: A simple, fast and user-friendly alternative to find.
+
+**** Install
+
+#+BEGIN_SRC bash
+  doas pkg install sysutils/fd
+#+END_SRC
+
+
+**** Usuage
+
+***** Search by the given file
+
+#+BEGIN_SRC bash
+    #
+    # Search all files name 'hyprland.con'
+    #
+    fd hyprland.conf
+
+    #
+    # Search all files name 'hypr*.conf'
+    # `-g`: Perform a glob-based search instead of a
+    #       regular expression search.
+    #
+    fd -g 'hypr*.conf'
+#+END_SRC
+
+
+***** Search by file extension
+
+#+BEGIN_SRC bash
+  #
+  # Search all file with `org` extension
+  #
+  fd -e org
+
+  #
+  # Search all file with `org` or `md` extension
+  #
+  fd -e org -e me
+#+END_SRC
+
+
+***** Search by file extension and size limitation
+
+#+BEGIN_SRC bash
+  #
+  # Search all file with `org` extension and size >= 100KB
+  #
+  fd -e org --size +100ki
+
+  #
+  # Search all file with `org` extension and size <= 5KB
+  #
+  fd -e org --size -5ki
+#+END_SRC
+
+
+***** Execute a command on every matched result
+
+#+BEGIN_SRC bash
+  #
+  # Search all file with `org` extension and size >= 10KB
+  # and run `wc -l` on each of them to get back the total
+  # lines of the file
+  #
+  fd -e org -x wc -l
+#+END_SRC
+
+
+
+*** fzf: A general-purpose command-line fuzzy finder.
+
+**** Install
+
+#+BEGIN_SRC bash
+  doas pkg install textproc/fzf 
+#+END_SRC
+
+
+**** Usage
+
+#+BEGIN_SRC bash
+  #
+  # -i  Case-insensitive match (default: smart-case match)
+  #
+  fzf -i
+
+  #
+  # If you want the result that matches all you type together (not sparated)
+  # -e, --exact Enable exact-match
+  #
+  fzf -e
+#+END_SRC
+
+
+** Full-text search
+
+*** ripgrep
+
+**** Install
+
+#+BEGIN_SRC bash
+  doas pkg install riggrep
+
+#+END_SRC
+
+
+**** Usage
+
+***** Search by pattern
+
+#+BEGIN_SRC bash
+  #
+  # Search `FreeBSD` in all files located in `~/my-shell/backup/`
+  #
+  rg "FreeBSD" ~/my-shell/backup/
+
+  #
+  # Search `FreeBSD` and `Fedora` in all files located in `~/my-shell/backup/`
+  #
+  rg -e "FreeBSD" -e "Fedora" ~/my-shell/backup/
+
+  #
+  # Search `FreeBSD` and `Fedora` in all files located in `~/my-shell/backup/`
+  # -i/--ignore-case: non case-sensitive
+  #
+  rg -e "FreeBSD" -e "Fedora" -i ~/my-shell/backup/
+#+END_SRC
+
+
+Another useful options:
+
+****** =-v, --invert-match=
+
+ This flag inverts matching. That is, instead of printing lines that match, ripgrep will print lines that don't match.
+
+
+****** =-x, --line-regexp=
+
+This is equivalent to surrounding every pattern with =^= and =$=. In other words, this only prints lines where the entire line participates in a match.
+
+For example:
+
+#+BEGIN_SRC bash
+  #
+  # Search the entire line content is 'Print'
+  #
+  rg -e "Print" -x ~/my-shell/backup/
+
+  # /home/wison/my-shell/backup/to-do.md
+  # 169:Print
+  # 172:Print
+#+END_SRC
+
+
+****** =--no-heading=
+
+By default, the output separated by the filename like this:
+
+#+BEGIN_SRC bash
+  /home/wison/my-shell/backup/freebsd_configs_th80/dot_configs/fish/config.fish
+  59:    else if [ $os_type = "FreeBSD" ]
+  82:    else if [ $os_type = "FreeBSD" ]
+  127:    printf "[ FreeBSD ] %s | " "$USER"
+
+  /home/wison/my-shell/backup/freebsd_configs_th80/dot_configs_root/fish/config.fish
+  59:    else if [ $os_type = "FreeBSD" ]
+  82:    else if [ $os_type = "FreeBSD" ]
+  127:    printf "[ FreeBSD ] %s | " "$USER"
+#+END_SRC
+
+
+If you want to feed them into a program ONLY with the match lines (without separated filename), you should use =--no-heading=:
+
+#+BEGIN_SRC bash
+  59:    else if [ $os_type = "FreeBSD" ]
+  82:    else if [ $os_type = "FreeBSD" ]
+  127:    printf "[ FreeBSD ] %s | " "$USER"
+  59:    else if [ $os_type = "FreeBSD" ]
+  82:    else if [ $os_type = "FreeBSD" ]
+  127:    printf "[ FreeBSD ] %s | " "$USER"
+#+END_SRC
+
+
+****** =-N, --no-line-number=
+
+Remove the line number from output
+
+
+****** =--json=
+
+To JSON format
+
+
