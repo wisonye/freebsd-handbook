@@ -84,6 +84,35 @@ When using =IPv4=, address should use =struct sockaddr_in= which declares in =ne
 #+END_SRC
 
 
+=IP_ADDRESS= just an one way direct from IP bytes to u32, there are some built-in API to convert between IP address (xxx.xxx.xxx.xxx) and u32:
+
+*** IP address to =sin_addr (u32)=
+
+#+BEGIN_SRC c
+  #include <arpa/inet.h>
+
+  struct sockaddr_in address = {0};
+  //
+  // IP address: 4bytes
+  //
+  inet_pton(AF_INET, "128.138.140.44", &(address.sin_addr));
+#+END_SRC
+
+
+*** =sin_addr (u32)= to IP address string
+
+#+BEGIN_SRC c
+  #include <arpa/inet.h>
+  struct sockaddr_in client_remote_address = {0};
+
+  char client_remote_addr_str[INET_ADDRSTRLEN];
+  inet_ntop(AF_INET,
+            &(client_remote_address.sin_addr),
+            client_remote_addr_str,
+            INET_ADDRSTRLEN);
+#+END_SRC
+
+
 ** Use as TCP client: Connect to TCP server
 
 =connect -> read/write -> close=
