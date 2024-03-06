@@ -1,0 +1,249 @@
+* Socket (inter-process) communication
+
+** The Sockets Model
+
+BSD sockets are built on the basic UNIX® model: =Everything is a file=.
+
+Due to the complexity of internetworking, we cannot just use the =open= system call, or the =open()= C function. Instead, we need to take several steps to "opening" a socket.
+
+Once we do, however, we can start treating the socket the same way we treat any file descriptor: We can =read= from it, =write= to it, =pipe= it, and, eventually, =close= it.
+
+
+** Create socket instance for IP (Internet Protocol) purpose
+
+#+BEGIN_SRC c
+  //
+  // A -1 is returned if an error occurs, otherwise the return value is a
+  // descriptor referencing the socket.
+  //
+  int socket_fd = socket(
+      //
+      // Protocol Family: IPv4 (Internet Protocol version 4)
+      //
+      PF_INET,
+      //
+      // Socket type: `SOCK_STREAM` for TCP, `SOCK_DGRAM` for UDP
+      //
+      SOCK_STREAM,
+      //
+      // Protocol: zero (0) to request the default implementation of a
+      // socket type for the protocol, if any.
+      //
+      0);
+
+  if (socket_fd < 1) {
+      //
+      // `print error` via the latest `errno` with the given prefix string
+      //
+      // The following `perror` call outputs the same with:
+      //
+      // fprintf(stderr, ">>> Create socket failed: %s", strerror(errno));
+      //
+      perror(">>> Create socket failed");
+  }
+#+END_SRC
+
+
+** Create socket address instance
+
+When using =IPv4=, address should use =struct sockaddr_in= which declares in =netinet/in.h=.
+
+#+BEGIN_SRC c
+  //
+  // Handy macro to convert an IP address into `network byte order` u32 value
+  //
+  // `htonl`: Host (byte order) to network (byte order) long (u32)
+  // `htons`: Host (byte order) to network (byte order) short (u16)
+  // `ntohl`: Network (byte order) to host (byte order) long (u32)
+  // `ntohs`: Network (byte order) to host (byte order) short (u16)
+  //
+  #define IP_ADDRESS(b1, b2, b3, b4) \
+      htonl((((((b1 << 8) | b2) << 8) | b3) << 8) | b4)
+
+  //
+  // When using `IPv4`, address should use `struct sockaddr_in` which
+  // declares in `netinet/in.h`
+  //
+  struct sockaddr_in address = {0};
+
+  //
+  // Address Family: IPv4
+  //
+  address.sin_family = AF_INET;
+  //
+  // Port: 2bytes
+  //
+  address.sin_port = htons(13);
+  //
+  // IP address: 4bytes
+  //
+  address.sin_addr = (struct in_addr){
+      // u32 (4bytes)
+      .s_addr = IP_ADDRESS(128, 138, 140, 44),
+  };
+#+END_SRC
+
+
+** Use as TCP client: Connect to TCP server
+
+=connect -> read/write -> close=
+
+#+BEGIN_SRC c
+   #define RECEIVE_BUFFER_SIZE 4096
+
+   struct sockaddr_in address = (struct sockaddr_in){
+      //
+      // Address Family: IPv4
+      //
+      .sin_family = AF_INET,
+      //
+      // Port: 2bytes
+      //
+      .sin_port = htons(13),
+      //
+      // IP address: 4bytes
+      //
+      .sin_addr =
+          (struct in_addr){
+              // u32 (4bytes)
+              .s_addr = IP_ADDRESS(128, 138, 140, 44),
+          },
+  };
+
+  //
+  // Connect to TCP server
+  //
+  if (connect(temp_sock, (struct sockaddr *)&address, sizeof address) < 0) {
+      perror(">>> Connect to TCP server failed");
+      close(temp_sock);
+      return 2;
+  }
+
+  //
+  // Write received bytes into buffer (4KB)
+  //
+  char buffer[RECEIVE_BUFFER_SIZE + 1];
+  int bytes = 0;
+  while ((bytes = read(temp_sock, buffer, RECEIVE_BUFFER_SIZE)) > 0) {
+      //
+      // Write to console, common FD (int value) defines in `unistd.h`
+      //
+      // #define	STDIN_FILENO	0	/* standard input file descriptor */
+      // #define	STDOUT_FILENO	1	/* standard output file descriptor */
+      // #define	STDERR_FILENO	2	/* standard error file descriptor */
+      //
+      write(STDOUT_FILENO, buffer, bytes);
+  }
+
+  close(temp_sock);
+#+END_SRC
+
+
+** Use as TCP Server: Listen and accept TCP client
+
+=bind -> listen -> loop { accept -> read/write -> close }=
+
+#+BEGIN_SRC c
+   struct sockaddr_in address = {0};
+
+  //
+  // Address Family: IPv4
+  //
+  address.sin_family = AF_INET;
+  //
+  // Port: 2bytes
+  //
+  address.sin_port = htons(listen_port);
+  //
+  // IP address: 4bytes
+  //
+  address.sin_addr = (struct in_addr){
+      // u32 (4bytes)
+      // `INADDR_ANY` means `0.0.0.0`
+      .s_addr = htonl(INADDR_ANY),
+  };
+
+  //
+  // Bind to listen address
+  //
+  if (bind(socket_fd, (struct sockaddr *)&address, sizeof address) < 0) {
+      perror(">>> Failed to bind to listen address");
+      return;
+  }
+
+  if (listen(socket_fd, TCP_SERVER_CONNECT_QUEUE_SIZE) < 0) {
+      perror(">>> Failed to listen address");
+      return;
+  }
+
+  printf("\n>>> Hello TCP Server is listening on 0.0.0.0:%d", listen_port);
+  fflush(stdout);
+
+  //
+  // infinite loop
+  //
+  for (;;) {
+      //
+      // Accept new TCP client connection
+      //
+      struct sockaddr_in client_remote_address = {0};
+      uint32_t sockarr_len = sizeof client_remote_address;
+      int connected_socket_fd = 0;
+      if ((connected_socket_fd =
+               accept(socket_fd,
+                      (struct sockaddr *)&client_remote_address,
+                      &sockarr_len)) < 0) {
+          perror("Failed to accept new TCP connection");
+          continue;
+      }
+
+      //
+      // Print client connection remote address and port
+      //
+      // Make sure to call `ntohs` on the port to get back
+      // the correct byte order integer!!!
+      //
+      char client_remote_addr_str[INET_ADDRSTRLEN];
+      inet_ntop(AF_INET,
+                &(client_remote_address.sin_addr),
+                client_remote_addr_str,
+                INET_ADDRSTRLEN);
+      printf("\n>>> New TCP client connected from %s:%d",
+             client_remote_addr_str,
+             ntohs(client_remote_address.sin_port));
+      fflush(stdout);
+
+      //
+      // Open client socket FD to write message
+      //
+      FILE *client_fd = NULL;
+      if ((client_fd = fdopen(connected_socket_fd, "w")) == NULL) {
+          perror("Failed to open new TCP connection for writing");
+          return;
+      }
+      fprintf(client_fd, "Hello from TCP Server:)\n");
+
+      //
+      // Close client socket FD and end the connection
+      //
+      fclose(client_fd);
+      close(connected_socket_fd);
+  }
+
+  close(socket_fd);
+#+END_SRC
+
+
+Then run the =telnet 127.0.0.1 9000= or =nc 127.0.0.1 9000= to test it, here is the server console output:
+
+#+BEGIN_SRC bash
+  >>> Hello TCP Server is listening on 0.0.0.0:9000
+  >>> New TCP client connected from 127.0.0.1:16070
+  >>> New TCP client connected from 127.0.0.1:61853
+  >>> New TCP client connected from 127.0.0.1:13233
+  >>> New TCP client connected from 127.0.0.1:47262
+  >>> New TCP client connected from 127.0.0.1:44180
+  >>> New TCP client connected from 192.168.1.190:51778
+  >>> New TCP client connected from 192.168.1.190:53693
+  >>> New TCP client connected from 192.168.1.190:53809
+#+END_SRC

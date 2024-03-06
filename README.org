@@ -41,3 +41,4 @@
 *** [[file:chapters/steam.org][Steam]]
 ** Development
 *** [[file:chapters/c-cpp.org][C/C++]]
+*** [[file:chapters/socket-communication.org][Socket (inter-process) communication]]
