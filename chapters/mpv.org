@@ -25,7 +25,8 @@
 | =L=            | Toggle infinite loop                              |
 | =s=            | Take a screenshot                                 |
 | =S=            | Take a screenshto without subtitles               |
-|              |                                                   |
+| =j=            | Cycle through the available subtitles.            |
+| =v=            | Toggle showing/hiding subtitles.                  |
 
 
 ** Useful options
