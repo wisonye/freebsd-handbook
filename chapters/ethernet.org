@@ -1,0 +1,10 @@
+* Ethernet
+
+Set up your ethernet NIC to use =DHCP= in =/etc/rc.conf=
+ 
+#+BEGIN_SRC bash
+  ifconfig_igc0="DHCP"
+  # ifconfig_igc0="group pfnic DHCP"
+#+END_SRC
+
+  Optional =group pfnic= is used to set the NIC with the given group name (=pnfic=) , then you can use that group name on firewall setttings when needed.

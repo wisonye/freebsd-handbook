@@ -22,8 +22,11 @@ That means =iwlwifi0= is the value your wanted.
   #+BEGIN_SRC bash
     wlans_iwlwifi0="wlan0"
     ifconfig_wlan0="WPA DHCP"
+    # ifconfig_wlan0="group pfnic WPA DHCP"
     create_args_wlan0="country NZ regdomain APAC2"
   #+END_SRC
+
+  Optional =group pfnic= is used to set the NIC with the given group name (=pnfic=) , then you can use that group name on firewall setttings when needed.
 
 
 - =/etc/wpa_supplicant.conf=
