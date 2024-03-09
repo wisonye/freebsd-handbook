@@ -7,4 +7,11 @@ Set up your ethernet NIC to use =DHCP= in =/etc/rc.conf=
   # ifconfig_igc0="group pfnic DHCP"
 #+END_SRC
 
-  Optional =group pfnic= is used to set the NIC with the given group name (=pnfic=) , then you can use that group name on firewall setttings when needed.
+Optional =group pfnic= is used to set the NIC with the given group name (=pnfic=) , then you can use that group name on firewall setttings when needed.
+
+
+After making networking settings related changes, you have to restart =netif= service to take affect:
+
+#+BEGIN_SRC bash
+  doas service netif restart
+#+END_SRC
