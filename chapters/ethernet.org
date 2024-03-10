@@ -1,6 +1,6 @@
 * Ethernet
 
-Set up your ethernet NIC to use =DHCP= in =/etc/rc.conf=
+** Set up your ethernet NIC to use =DHCP= in =/etc/rc.conf=
  
 #+BEGIN_SRC bash
   ifconfig_igc0="DHCP"
@@ -14,4 +14,111 @@ After making networking settings related changes, you have to restart =netif= se
 
 #+BEGIN_SRC bash
   doas service netif restart
+#+END_SRC
+
+
+** How to reset default route from WIFI NIC to Ethernet NIC on the fly
+
+For example, you boot FreeBSD with WIFI NIC on and everything works fine, default gateway via =wlan0= like below:
+
+#+BEGIN_SRC bash
+  netstat  -rn4
+
+  # Routing tables
+
+  # Internet:
+  # Destination        Gateway            Flags     Netif Expire
+  # default            192.168.1.200      UGS       wlan0
+  # 127.0.0.1          link#2             UH          lo0
+  # 192.168.1.0/24     link#3             U         wlan0
+  # 192.168.1.190      link#2             UHS         lo0 
+#+END_SRC
+
+
+As you can see the =default= route to gateway =192.168.1.200= via =wlan0= (WIFI NIC).
+
+Right now, you plug in the ethernet cable and do the following commands to stop the WIFI and use ethernet:
+
+#+BEGIN_SRC bash
+  #
+  # Make `wlan0` (WIFI) NIC down
+  #
+  doas ifconfig wlan0 down
+
+  #
+  # Make `igc0` (Ethernet) NIC up
+  #
+  doas ifconfig igc0 up 
+
+  #
+  # Restart the routing service to update the routing table
+  #
+  doas service routing restart
+#+END_SRC
+
+
+But the =default= route is misisng from the routing table:
+
+#+BEGIN_SRC bash
+  netstat  -rn4
+
+  # Routing tables
+
+  # Internet:
+  # Destination        Gateway            Flags     Netif Expire
+  # 127.0.0.1          link#2             UH          lo0
+  # 192.168.1.0/24     link#1             U          igc0
+  # 192.168.1.160      link#2             UHS         lo0
+  # 192.168.1.190      link#2             UHS         lo0
+#+END_SRC
+
+That said you lost interent as the =default= route is gone.
+
+So, you have to add back the =default= route by running:
+
+#+BEGIN_SRC bash
+  #
+  # Change `192.168.1.200` to your default route
+  #
+  doas route add default 192.168.1.200
+
+  #
+  # Better to restart `pf` and `pflog` services as well if you `PF` as firewall,
+  # as this will clean all established state!!!
+  #
+  doas service pf restart
+  doas service pflog restart
+#+END_SRC
+
+
+From now on, your interenet is back:
+
+#+BEGIN_SRC bash
+  netstat  -rn4
+
+  # Routing tables
+
+  # Internet:
+  # Destination        Gateway            Flags     Netif Expire
+  # default            192.168.1.200      UGS        igc0
+  # 127.0.0.1          link#2             UH          lo0
+  # 192.168.1.0/24     link#1             U          igc0
+  # 192.168.1.160      link#2             UHS         lo0
+  # 192.168.1.190      link#2             UHS         lo0
+#+END_SRC
+
+
+Try to get a route to google to confirm, it should via the ethernet NIC now!!!
+
+#+BEGIN_SRC bash
+  route get google.co.nz
+
+  #    route to: syd09s25-in-f3.1e100.net
+  # destination: default
+  #        mask: default
+  #     gateway: 192.168.1.200
+  #         fib: 0
+  #   interface: igc0
+  #       flags: <UP,GATEWAY,DONE,STATIC>
+  #  recvpipe  sendpipe  ssthresh  rtt,msec    mtu        weight    expire
 #+END_SRC
