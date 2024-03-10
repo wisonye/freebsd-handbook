@@ -202,5 +202,33 @@ That's because this [[https://cgit.freebsd.org/src/commit/?=id=d74c589ead91118a4
 
 That's saying =Intel AX201NGW= bluetooth dev just ignore in the following source code:
 
-=/sys/netgraph/bluetooth/drivers/ubt/ng_ubt.c=
+=/sys/netgraph/bluetooth/drivers/ubt/ng_ubt.c= has the following setting in =ubt_ignore_deves=:
+
+
+#+BEGIN_SRC c
+  static const STRUCT_USB_HOST_ID ubt_ignore_devs[] = 
+  {
+          /*
+           ,* Some Intel controllers are not yet supported by ng_ubt_intel and
+           ,* should be ignored.
+           ,*/
+          { USB_VPI(USB_VENDOR_INTEL2, 0x0032, 0) },
+          { USB_VPI(USB_VENDOR_INTEL2, 0x0033, 0) },
+  };
+#+END_SRC
+
+That =0x0032= it the =Intel AX201NGW= which you can confirm by running =doas usbconfig=:
+
+#+BEGIN_SRC bash
+  doas usbconfig
+
+  # ugen0.1: <Intel XHCI root HUB> at usbus0, cfg=0 md=HOST spd=SUPER (5.0Gbps) pwr=SAVE (0mA)
+  # ugen0.2: <Logitech USB Receiver> at usbus0, cfg=0 md=HOST spd=FULL (12Mbps) pwr=ON (98mA)
+  # ugen0.3: <AONE Varmilo Keyboard> at usbus0, cfg=0 md=HOST spd=FULL (12Mbps) pwr=ON (350mA)
+  ugen0.4: <vendor 0x8087 product 0x0032> at usbus0, cfg=0 md=HOST spd=FULL (12Mbps) pwr=ON (100mA)
+#+END_SRC
+
+As you can see, =ugen0.4: <vendor 0x8087 product 0x0032>= is an unrecognized device!!!
+
+
 =/sys/netgraph/bluetooth/drivers/ubt/ng_ubt_intel.c=
