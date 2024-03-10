@@ -1,0 +1,222 @@
+* Ports collection
+
+[[https://docs.freebsd.org/en/books/handbook/ports/#ports-using][Here]] is the updated version about =Ports=:
+
+The =Ports= Collection is a set of Makefiles, patches, and description files.
+
+Each set of these files is used to compile and install an individual application on FreeBSD, and is called a =port=.
+
+By default, the Ports Collection itself is stored as a subdirectory of =/usr/ports=.
+
+When using =port= to install, you can change any default compile option to fit your requirement.
+
+
+** Something you need to know about the =/usr/ports= folder
+
+If you selected =ports= in the installation process, then you should already have the =/usr/ports= folder.
+
+If you choose to use =zfs=, then =/usr/XXX= is not just a folder mount point, it's a zfs dataset:
+
+#+BEGIN_SRC bash
+  mount | rg ports
+
+  # zroot/usr/ports on /usr/ports (zfs, local, noatime, nosuid, nfsv4acls)
+#+END_SRC
+
+That's why you can't do something like move or change the folder name, otherwise, you will see the following error:
+
+#+BEGIN_SRC bash
+  cd /usr
+  mv ports ports_backup
+
+  # mv: rename ports to port_backup: Operation not supported
+#+END_SRC
+
+You need to use =zfs-rename= for that case.
+
+
+** How to =git clone= the latest version ports
+
+*** Remove all contents in =/usr/ports= first, as you can't control it by =git=
+
+#+BEGIN_SRC bash
+  cd /usr/ports
+  doas rm -rf *
+  doas rm -rf .arcconfig .gitignore .hooks/
+#+END_SRC
+
+
+*** Clone the latest version
+
+#+BEGIN_SRC bash
+  doas git clone https://git.FreeBSD.org/ports.git /usr/ports
+
+  # Cloning into '/usr/ports'...
+  # remote: Enumerating objects: 6136447, done.
+  # remote: Counting objects: 100% (936/936), done.
+  # remote: Compressing objects: 100% (120/120), done.
+  # remote: Total 6136447 (delta 923), reused 816 (delta 816), pack-reused 6135511
+  # Receiving objects: 100% (6136447/6136447), 1.20 GiB | 25.29 MiB/s, done.
+  # Resolving deltas: 100% (3706485/3706485), done.
+  # Updating files: 100% (158616/158616), done.
+#+END_SRC
+
+
+From now on, =/usr/ports= folder is under =git= control:
+
+#+BEGIN_SRC bash
+  doas git status
+
+  # On branch main
+  # Your branch is up to date with 'origin/main'.
+#+END_SRC
+
+
+*** Update after installation/clone:
+
+#+BEGIN_SRC bash
+  #
+  # When needed, update /usr/ports after the initial Git checkout:
+  #
+  doas git -C /usr/ports pull
+
+  #
+  # When needed, switch /usr/ports to a different quarterly branch:
+  #
+  doas git -C /usr/ports switch BRANCH_NAME_HERE
+#+END_SRC
+
+
+** Port folder description
+
+For example:
+
+#+BEGIN_SRC bash
+  ll /usr/ports/x11-drivers/xf86-video-intel/
+
+  # total 27
+  # -rw-r--r--  1 root  wheel   1.3K Dec  9 11:51 Makefile
+  # -rw-r--r--  1 root  wheel   292B Dec  9 11:51 distinfo
+  # drwxr-xr-x  2 root  wheel     9B Dec  9 11:51 files/
+  # -rw-r--r--  1 root  wheel   531B Dec  9 11:51 pkg-descr
+  # -rw-r--r--  1 root  wheel   240B Dec  9 11:51 pkg-plist
+#+END_SRC
+
+- =Makefile=: contains statements that specify how the application should be compiled and where its components should be installed.
+
+- =distinfo=: contains the names and checksums of the files that must be downloaded to build the port.
+
+- =files/=: this directory contains any patches needed for the program to compile and install on FreeBSD. This directory may also contain other files used to build the port.
+
+- =pkg-descr=: provides a more detailed description of the program.
+
+- =pkg-plist=: a list of all the files that will be installed by the port. It also tells the ports system which files to remove upon deinstallation.
+
+
+** How to search in =/usr/ports=
+
+*** If you only want to search by filename or folder name
+
+Run =fzf --exact=
+
+
+*** If you want to search in comments, descriptions, or dependencies
+
+Fetch index and this only need to run once:
+
+#+BEGIN_SRC bash
+  cd /usr/ports
+
+  doas make fetchindex
+#+END_SRC
+
+
+After fetching the index, you're able to search at any given time:
+
+#+BEGIN_SRC bash
+  make quicksearch name=neovim
+
+  # Port:   neovim-qt-0.2.17_1
+  # Path:   /usr/ports/editors/neovim-qt
+  # Info:   Neovim client library and QT5 GUI
+
+  # Port:   neovim-0.8.1
+  # Path:   /usr/ports/editors/neovim
+  # Info:   Next-generation Vim
+
+  # Port:   rubygem-neovim-0.9.0
+  # Path:   /usr/ports/editors/rubygem-neovim
+  # Info:   Ruby bindings for neovim
+
+
+  make quicksearch name=amdgpu
+
+  # Port:   xf86-video-amdgpu-22.0.0_1
+  # Path:   /usr/ports/x11-drivers/xf86-video-amdgpu
+  # Info:   X.Org amdgpu display driver
+#+END_SRC
+
+
+** How to show default configs
+
+#+BEGIN_SRC bash
+  make showconfig
+#+END_SRC
+
+
+** How to customize configs
+
+#+BEGIN_SRC bash
+  #
+  # If you don't mind it pops up configuration UI for all dependencies
+  #
+  doas make config
+
+  #
+  # If you want to only config once, plz do this rather than `make config` (I prefer this one)
+  #
+  doas make config-recursive
+#+END_SRC
+
+If you forget what configs you choose and want to go back to the default state, then you can run =make rmconfig= and restart again:)
+
+
+** How to install and remove
+
+When you install via =port=, you need root premission.
+
+#+BEGIN_SRC bash
+  #
+  # Go into the folder you want to install, for example:
+  #
+  cd /usr/ports/x11-drivers/xf86-video-intel/
+
+  #
+  # Compile, install and clean the temp files
+  #
+  doas make install clean
+#+END_SRC
+
+
+How to remove installed ports:
+
+#+BEGIN_SRC bash
+  #
+  # Go into the folder you want to install, for example:
+  #
+  cd /usr/ports/x11-drivers/xf86-video-intel/
+
+  #
+  # Remove
+  #
+  doas make deinstall
+#+END_SRC
+
+
+** About the disk space
+
+After installing a few packages via =ports=, you will see that the =/usr/ports/distfiles= folder hold a lot of space. But DO NOT run =rm -rf /usr/ports/distfiles/*=, that will make another module which installed via =port= not working anymore!!!
+
+The correct way to claim back the space is following =portsclean= or =portmaster= to do that.
+
+For more details, visit [[https://www.freebsd.org/doc/en_US.ISO8859-1/books/handbook/ports-using.html][here]].
