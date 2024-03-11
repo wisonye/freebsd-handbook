@@ -1,0 +1,17 @@
+* Ungoogled-Chromium
+
+** Install
+
+** Install and update extensions
+
+*** Set flag
+
+open =chrome://flags/#extension-mime-request-handling= in =ungoogled-chromium=, set it to =Always prompt for install= and relaunch.
+
+
+*** Download =Chromium.Web.Store.crx= and install it
+
+Open https://github.com/NeverDecaf/chromium-web-store/releases/latest in =ungoogle-chromium=,
+you should be prompted to install the extension.
+
+Make sure to relaunch before install any extensions via =Chrome Web Store=.

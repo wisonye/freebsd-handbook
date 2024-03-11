@@ -1,0 +1,138 @@
+* Native Chromium (I failed to install!!!)
+
+** Get the latest =ports= source code
+
+If you don't have the =/usr/ports/www/linux-widevine-cdm= folder, then you should git clone the latest ports, read through the [[file:ports.org][Ports collection]] chapter before continue.
+
+
+** Config =chromium=
+
+#+BEGIN_SRC bash
+  cd /usr/ports/www/chromium
+  doas make config 
+#+END_SRC
+
+Make sure that =WIDEVINE=on=!!!
+
+And here is my choice:
+
+#+BEGIN_SRC bash
+  make showconfig
+
+  # ===> The following configuration options are available for chromium-117.0.5938.149:
+  #      CODECS=on: Compile and enable patented codecs like H.264
+  #      CUPS=on: CUPS printing system support
+  #      DEBUG=off: Build with debugging support
+  #      DRIVER=on: Install chromedriver
+  #      KERBEROS=on: Kerberos support
+  #      LTO=off: Use Link-Time Optimization
+  #      PIPEWIRE=on: Screen capture via PipeWire
+  #      TEST=off: Build and/or run tests
+  #      WIDEVINE=on: Depend on foreign-cdm to enable playback of DRM content
+  # ====> Options available for the group AUDIO
+  #      ALSA=off: ALSA audio architecture support
+  #      PULSEAUDIO=off: PulseAudio sound server support
+  #      SNDIO=on: Sndio audio support
+  # ====> Kerberos support: you can only select none or one of them
+  #      HEIMDAL=off: Heimdal Kerberos (security/heimdal)
+  #      HEIMDAL_BASE=off: Heimdal Kerberos (base)
+  #      MIT=off: MIT Kerberos (security/krb5)
+  # ===> Use 'make config' to modify these settings
+#+END_SRC
+
+
+** Install =linux-widevine-cdm=
+
+#+BEGIN_SRC bash
+  cd /usr/ports/www/linux-widevine-cdm
+  doas make config
+
+  #
+  # You have to `Accept` the license in the popup!!!
+  #
+  doas make install clean
+
+  # ===>  License Proprietary needs confirmation, will ask later
+  # ===>   linux-widevine-cdm-4.10.2710.0 depends on file: /usr/local/sbin/pkg - found
+  # => google-chrome-stable_121.0.6167.85-1_amd64.deb doesn't seem to exist in /usr/ports/distfiles/.
+  # => Attempting to fetch https://dl.google.com/linux/deb/pool/main/g/google-chrome-stable/google-chrome-stable_121.0.6167.85-1_amd64.deb
+  # google-chrome-stable_121.0.6167.85-1_amd64.deb         101 MB   18 MBps    06s
+  # ===> Fetching all distfiles required by linux-widevine-cdm-4.10.2710.0 for building
+  # ===>  Extracting for linux-widevine-cdm-4.10.2710.0
+  # => SHA256 Checksum OK for google-chrome-stable_121.0.6167.85-1_amd64.deb.
+  # cd /usr/ports/www/linux-widevine-cdm/work && /usr/bin/tar -xf data.tar.xz --no-same-owner --no-same-permissions
+  # ===>  Patching for linux-widevine-cdm-4.10.2710.0
+  # ===>  Configuring for linux-widevine-cdm-4.10.2710.0
+  # ===>  Staging for linux-widevine-cdm-4.10.2710.0
+  # ===>   Generating temporary packing list
+  # cd /usr/ports/www/linux-widevine-cdm/work/opt/google/chrome/ && /bin/sh -c '(/usr/bin/find -Ed $1 $3 | /usr/bin/cpio -dumpl $2 >/dev/null 2>&1) &&  /usr/bin/find -Ed $1 $3 \(   -type d -exec /bin/sh -c '\''cd '\''$2'\'' && chmod 755 "$@"'\'' . {} +  -o -type f -exec /bin/sh -c '\''cd '\''$2'\'' && chmod 0644 "$@"'\'' . {} + \)' COPYTREE_SHARE WidevineCdm /usr/ports/www/linux-widevine-cdm/work/stage/usr/local/lib
+  # /bin/rm -f /usr/ports/www/linux-widevine-cdm/work/stage/usr/local/lib/WidevineCdm/LICENSE
+  # ====> Compressing man pages (compress-man)
+  # ===>  Installing for linux-widevine-cdm-4.10.2710.0
+  # ===>  Checking if linux-widevine-cdm is already installed
+  # ===>   Registering installation for linux-widevine-cdm-4.10.2710.0
+  # Installing linux-widevine-cdm-4.10.2710.0...
+#+END_SRC
+
+
+** Install =chromium=
+
+#+BEGIN_SRC bash
+  cd /usr/ports/www/chromium
+  doas make install clean
+#+END_SRC
+
+
+*** Building error related to out-dated version:
+
+You might need to remove the older version programs, for example:
+
+#+BEGIN_SRC bash
+  ====> Compressing man pages (compress-man)
+  ===>  Installing for gmake-4.4.1
+  ===>  Checking if gmake is already installed
+  ===>   An older version of gmake is already installed (gmake-4.3_3)
+        You may wish to ``make deinstall'' and install this port again
+        by ``make reinstall'' to upgrade it properly.
+        If you really wish to overwrite the old port of gmake
+        without deleting it first, set the variable "FORCE_PKG_REGISTER"
+        in your environment or the "make install" command line.
+  /*** Error code 1
+
+  Stop.
+  make[6]: stopped in /usr/ports/devel/gmake
+  /*** Error code 1
+#+END_SRC
+
+Then try remove installed =gmake= and try again.
+
+
+** Building error related to =Shared object "libc.so.6" not found=
+
+#+BEGIN_SRC bash
+  make: stopped in /usr/ports/www/foreign-cdm/work/foreign-cdm-3fe4d7130bb1e0581b5310635515a120f2794b88
+  --- build/override-linux.so ---
+  /compat/linux/opt/rh/devtoolset-11/root/usr/bin/gcc -Wall -Wextra -Wno-unused-parameter --sysroot=/compat/linux -O2 -std=c99 -fPIC -shared -o build/override-linux.so src/override.c -ldl && chmod a+rX build/override-linux.so
+  /usr/local/bin/ld: /compat/linux/opt/rh/devtoolset-11/root/usr/bin/../libexec/gcc/x86_64-redhat-linux/11/liblto_plugin.so: error loading plugin: Shared object "libc.so.6" not found, required by "liblto_plugin.so"
+  collect2: error: ld returned 1 exit status
+  /*** [build/override-linux.so] Error code 1
+
+  make: stopped in /usr/ports/www/foreign-cdm/work/foreign-cdm-3fe4d7130bb1e0581b5310635515a120f2794b88
+  2 errors
+#+END_SRC
+
+For that case, you need to add =/compat/linux/lib= to the library search path, open the =Makefile= in the =make: stopped in= folder and add the following =-L= settings like below:
+
+#+BEGIN_SRC bash
+  LINUX_CFLAGS   ?= -Wall -Wextra -Wno-unused-parameter --sysroot=/compat/linux -O2 -std=c99 -L /compat/linux/lib -L /compat/linux/lib64
+  LINUX_CXXFLAGS ?= -Wall -Wextra -Wno-unused-parameter --sysroot=/compat/linux -O2 -std=c++17 -L /compat/linux/lib -L /compat/linux/
+#+END_SRC
+
+Save and try again.
+
+
+But it doesn't solve the problem, I have no idea what I can do....:(
+
+BTW, be patient, as it takes a few hours to compile (include =node20= and =llvm17= will be compiled on the fly). It took around =6= hours on my =TH80= mini PC.
+
+

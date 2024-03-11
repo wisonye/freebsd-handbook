@@ -35,7 +35,8 @@
 *** [[file:chapters/emacs.org][Emacs]]
 *** [[file:chapters/mpv.org][mpv]]
 *** [[file:chapters/qutebrowser.org][Qutebrowser]]
-*** Chromium
+*** [[file:chapters/chromium.org][Chromium]]
+*** [[file:chapters/ungoogled-chromium.org][Ungoogled-Chromium]]
 *** [[file:chapters/google_cloud_sdk.org][Google cloud SDK]]
 *** [[file:chapters/lf.org][Lf]]
 *** [[file:chapters/bhyve.org][Bhyve virtualization]]
