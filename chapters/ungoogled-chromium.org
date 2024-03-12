@@ -2,11 +2,23 @@
 
 ** Install
 
+You have to use =Quarterly= branch, it doesn't exists in =Latest= branch!!!
+
+#+BEGIN_SRC bash
+  doas pkg install ungoogled-chromium
+#+END_SRC
+
+
 ** Install and update extensions
 
-*** Set flag
+*** Set flag related to extension
 
 open =chrome://flags/#extension-mime-request-handling= in =ungoogled-chromium=, set it to =Always prompt for install= and relaunch.
+
+
+*** Set flag related to Wayland
+
+open =chrome://flags/#ozone-platform-hint= in =ungoogled-chromium=, set it to =Wayland= and relaunch.
 
 
 *** Download =Chromium.Web.Store.crx= and install it
@@ -15,3 +27,8 @@ Open https://github.com/NeverDecaf/chromium-web-store/releases/latest in =ungoog
 you should be prompted to install the extension.
 
 Make sure to relaunch before install any extensions via =Chrome Web Store=.
+
+
+*** Install extension
+
+When you open tne extension, if you see the =Add to Chrome= is grep and unclickable, try refresh the page, it should work:)
