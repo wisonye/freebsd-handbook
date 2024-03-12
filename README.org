@@ -40,7 +40,7 @@
 *** [[file:chapters/google_cloud_sdk.org][Google cloud SDK]]
 *** [[file:chapters/lf.org][Lf]]
 *** [[file:chapters/bhyve.org][Bhyve virtualization]]
-** Ports collection
+** [[file:chapters/ports.org][Ports collection]]
 ** Gaming
 *** [[file:chapters/steam.org][Steam]]
 ** Development
