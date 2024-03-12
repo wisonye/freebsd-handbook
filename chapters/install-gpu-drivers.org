@@ -134,7 +134,10 @@ Finally, you will see this appears in =dmesg -a=:
 
 #+BEGIN_SRC bash
   virtio_pci0: <VirtIO PCI (modern) GPU adapter> port 0xc000-0xc01f mem 0xc0000000-0xcfffffff,0xd0004000-0xd0004fff,0xd0000000-0xd0003fff at device 0.0 on pci1
+  vtgpu0: <VirtIO GPU> on virtio_pci0
+  VT: Replacing driver "efifb" with new "virtio_gpu".
 #+END_SRC
+
 
 
 And confirm =virt_gpu= driver has been attached by the following command:
@@ -150,4 +153,4 @@ And confirm =virt_gpu= driver has been attached by the following command:
 #+END_SRC
 
 
-What a surprise news, it works!!!
+But it freezes after reboot 
