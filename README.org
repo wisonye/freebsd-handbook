@@ -7,7 +7,7 @@
 ** [[file:chapters/install-basic-tools-and-setup.org][Install basic tools and setup]]
 ** [[file:chapters/install-gpu-drivers.org][Install GPU drivers]]
 ** [[file:chapters/make-boot-faster.org][Make boot faster]]
-** =ZFS= - Take a base snapshot before installing anywhere else
+** =ZFS= - Take a base snapshot before installing anything else
 
 #+BEGIN_SRC bash
   doas zfs snapshot -r zroot@minimal
