@@ -47,7 +47,7 @@ And then add the following settings to ~/etc/rc.conf~ to load GPU driver module:
 
 ** Paralles Desktop GPU issue
 
-If you run =dmesg -a= and search for =vga=, then you should be able to the following logs:
+By default, if you run =dmesg -a= and search for =vga=, then you should be able to the following logs:
 
 #+BEGIN_SRC text
   vgapci0: <VGA-compatible display> port 0xc000-0xc01f mem 0xc0000000-0xcfffffff at device 0.0 on pci1
@@ -96,3 +96,58 @@ But =FreeBSD 14= does have the =virtio-gpu= driver, if you run ~man virtio-gpu~,
 
 
 But after I rebuilt my custom kernel (=PARALLELS_VM=) with the =virtio_gpu= driver, it still doesn't work. =FreeBSD= still load the =vga= driver for the =pci0= deivce (~vgapci0@pci0~) rather than the =virtio_gpu= driver!!!
+
+
+***  The final magic to make the =virt_gpu= work
+
+Open =FreeBSD.pvm/config.pvs= and change the following settings:
+
+=FreeBSD.pvm= is your vm filename (but it's a folder actually).
+
+#+BEGIN_SRC xml
+   <Video NativeScalingInGuest_patch="" VideoMemorySize_patch="1" ApertureOnlyCapable_patch="2" dyn_lists="">
+     <Enabled>1</Enabled>
+
+     <Type>1</Type>
+
+     <VirtIOBusType>0</VirtIOBusType>
+     <VideoMemorySize>2048</VideoMemorySize>
+     <EnableDirectXShaders>1</EnableDirectXShaders>
+     <ScreenResolutions dyn_lists="ScreenResolution 0 DynamicResolution 0">
+        <Enabled>0</Enabled>
+     </ScreenResolutions>
+     <Enable3DAcceleration>1</Enable3DAcceleration>
+     <EnableVSync>1</EnableVSync>
+     <MaxDisplays>0</MaxDisplays>
+     <EnableHiResDrawing>1</EnableHiResDrawing>
+     <UseHiResInGuest>1</UseHiResInGuest>
+     <HostScaleFactor>2</HostScaleFactor>
+     <NativeScalingInGuest>0</NativeScalingInGuest>
+     <ApertureOnlyCapable>0</ApertureOnlyCapable>
+  </Video>
+#+END_SRC
+
+
+Change =<Type>0</Type>= to =<Type>1</Type>= like above, save and relaunch your VM.
+
+Finally, you will see this appears in =dmesg -a=:
+
+#+BEGIN_SRC bash
+  virtio_pci0: <VirtIO PCI (modern) GPU adapter> port 0xc000-0xc01f mem 0xc0000000-0xcfffffff,0xd0004000-0xd0004fff,0xd0000000-0xd0003fff at device 0.0 on pci1
+#+END_SRC
+
+
+And confirm =virt_gpu= driver has been attached by the following command:
+
+#+BEGIN_SRC bash
+  pciconf -lv|grep -B4 VGA
+
+  # virtio_pci0@pci0:1:0:0: class=0x030000 rev=0x01 hdr=0x00 vendor=0x1af4 device=0x1050 subvendor=0x1ab8 subdevice=0x0010
+  #     vendor     = 'Red Hat, Inc.'
+  #     device     = 'Virtio 1.0 GPU'
+  #     class      = display
+  #     subclass   = VGA
+#+END_SRC
+
+
+What a surprise news, it works!!!
