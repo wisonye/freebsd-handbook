@@ -60,7 +60,7 @@ Choose =Auto (ZFS)=
 
 
 *** ZFS Configuration
-, UEFI-only, GPT (GUID Partition Table)=
+=UEFI-only, GPT (GUID Partition Table)=
 
 - Pool Type/Disks: Choose =stripe - No Redundancy=
 - Partition Scheme: Choose =GPT (UEFI-only)=

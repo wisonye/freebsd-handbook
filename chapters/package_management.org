@@ -28,13 +28,21 @@ You should be able to find all mirrors from [[https://pkg.freebsd.org/][pkg.free
 #+END_SRC
 
 
-*** Change from =Quarterly= to =latest= branch
+*** Optional, Change from =Quarterly= to =latest= branch
 
 The =Quarterly= branch provides users with a more predictable and stable experience for =port= and package installation and upgrades.
 
 The =Quarterly= branch is cut from =HEAD= at the beginning of every (yearly) quarter in =January, April, July, and October=. Branches are named according to the year (=YYYY=) and quarter (=Q1-4=) they are created in. For example, the quarterly branch created in =January 2016=, is named =2016Q1=.
 
 And the =Latest= branch provides the latest versions of the packages to the users. Personally, I prefer switch to the =Lates= branch:)
+
+
+But one more thing before switching to =Lastet= branch:
+
+~Some packages ONLY EXISTS in =Quarterly= branch, for example: Chromium, ungoogled-chromium~
+
+So, if you do need them, keep staying in =Quarterly= branch!!!
+
 
 Edit =/usr/local/etc/pkg/repos/FreeBSD.conf= and change =url= to:
 
