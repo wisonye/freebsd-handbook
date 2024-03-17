@@ -246,6 +246,7 @@ All available settings are in =/usr/local/share/examples/vm-bhyve/config.sample=
 
 You should copy one of them, modify it and save to =$vm_dir/.template=.
 
+
 ** Create guest VM
 
 =-t arch_linux=: Use =$vm_dir/.template/arch_linux.conf= as template to create VM
@@ -388,3 +389,82 @@ If you're currently inside a tmux session, then you HAVE TO detech or open a new
   doas vm poweroff -f my-arch
 #+END_SRC
 
+
+
+** Firewall setup
+
+If your host uses =PF=, then you have to modify =PF= rules to make the VM network work, here the newly added rules target the VM in =/etc/pf.conf=:
+
+#+BEGIN_SRC bash
+  nic_vm_switch = "vm-internal"
+  nic_vm_group = "vm-switch"
+  trust_vm_node = "{192.168.2.10, 192.168.2.20}"
+
+  # ==============================================================================
+  #
+  # Allow {DNS,NTP,Multicast DNS, SSDP} query & response (statefully by default)
+  #
+  # DNS  - Domain Name Server (53 UDP)
+  # NTP  - Network Time Protocol (123 UDP)
+  # mdsn - Multicast DNS (5353 UDP)
+  # SSDP - Selective Service Discovery Protocol (1900 UDP)
+  # BOOT/DHCP - Bootstrap Protocol (BOOTP) (legacy BOOTP functionality by DHCP)
+  #
+  # ==============================================================================
+  pass quick on $nic_vm_group proto udp from any to any port {domain,ntp,mdns,ssdp,bootpc}
+
+  # ==============================================================================
+  #
+  # - Allow out ping request and reply (statefully by default)
+  # - Allow trust node ping me
+  # - Allow trust vm node ping me
+  #
+  # - `inet`:
+  #   It's the optional `address family` value, it means `ipv4`.
+  #   `inet6` means `ipv6`.
+  #
+  # - In the `from ⟨source⟩ port ⟨source⟩ os ⟨source⟩ to ⟨dest⟩ port ⟨dest⟩` part:
+  #
+  # 	`all` - This is equivalent to `from any to any`
+  #
+  # - For knowing the `icmp-type` name and number: `man icmp`
+  #
+  # ==============================================================================
+  pass in quick on $nic_vm_group proto icmp from $trust_vm_node to {($nic_vm_switch)} icmp-type echoreq
+
+  # ==============================================================================
+  #
+  # - Allow me to ssh to vm
+  #
+  # ==============================================================================
+  pass in quick on $nic_vm_group proto tcp from {($nic_vm_switch)} to $trust_vm_node port ssh
+
+  # ==============================================================================
+  #
+  # Allow dialy app to use: all outgoing TCP and related reply
+  #
+  # ==============================================================================
+  pass out quick on $nic_vm_group proto tcp from {($nic_vm_switch)} to any
+
+  # Youtube needed
+  # https       443/udp
+  # ssdp        1900/udp   #Selective Service Discovery Protocol (UPnP)
+  pass out quick on $nic_vm_group proto udp from {($nic_vm_switch)} to any port {https,ssdp}
+
+  # ==============================================================================
+  #
+  # Last step before `block all`:
+  #
+  # Block and log all incoming and outgoing packets via default out NIC and either:
+  #
+  # - Want to go out from my ip
+  # - Want to come in to my ip
+  #
+  # The purpose for those rules is that: 
+  #
+  # I can review the pflog file to see whether I'missing any allows rules or not:)
+  #
+  # ==============================================================================
+  block in quick log(all) on $nic_vm_group from any to {($nic_vm_switch)}
+  block out quick log(all) on $nic_vm_group from {($nic_vm_switch)} to any
+#+END_SRC
