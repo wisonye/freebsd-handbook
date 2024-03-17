@@ -76,55 +76,162 @@ For example:
 So, you can use ~tmux attach-session -t fbsd~ and do a quick switch between different tmux sessions.
 
 
-** Create =public= virtual switch and attach your NIC to it
+** Create virtual switch and attach your NIC to it
+
+The =vm= utility automatically creates a =bridge= device for each =virtual switch=. When a guset is started, a virtual ethernet (=tap=) device is created, and it will be automatically added as a member of the specified =virtual switch=.
+
+
+*** Create a standard type virtual switch
+
+You're able to bind the virtual switch to multiple NICs.
+
+- =-t=: Specify virtual switch type, =standard= is the default value if you don't provided.
+- =-i=: Attach a physical NIC. You can't use =i= more than once!!!
+- =-a=: Specify an IP adress that is assigned to the bridge interface.
+- =-p=: Enable private mode, guests can't access each other, even they're conntected the same virtual switch!!!
+- =internal=: The name of virtual switch, maximum length of a switch name is also limited to 12 characters.
 
 #+BEGIN_SRC bash
-  doas vm switch create public
-
-  #
-  # Make sure to change `wlan0` to your correct NIC!!!
-  #
-  doas vm switch add public wlan0
+  doas vm switch create \
+      -t standard \
+      -i igc0 \
+      -a 192.168.2.1/24 \
+      internal
 #+END_SRC
 
-After that, you can list your switch like this:
+
+Plz DO NOT attach more than one physical interface to the virtual switch, otherwise, it caused internet access issue!!!
+
+**** Alternative way to create
+
+You can separate the above command to the following commands for doing the same thing:
 
 #+BEGIN_SRC bash
-  #
-  # List all switches
-  #
-  doas vm switch list
-  # NAME    TYPE      IFACE      ADDRESS  PRIVATE  MTU  VLAN  PORTS
-  # public  standard  vm-public  -        no       -    -     wlan0
+  doas vm switch create internal
+  doas vm switch address internal 192.168.2.1/24
+  doas vm switch add internal igc0
+  # doas vm switch add internal wlan0
 
   #
-  # Info the given switch, `public` is the virtual switch name
+  # Turn on/off the private mode on a switch
   #
-  doas vm switch info public
+  doas vm switch private internal on
+  doas vm switch private internal off
+#+END_SRC
+
+Also, that's how you can modify the created virtual switch settings as well.
+
+
+*** List and info
+
+#+BEGIN_SRC bash
+  doas vm switch list
+  # NAME      TYPE      IFACE        ADDRESS         PRIVATE  MTU  VLAN  PORTS
+  # internal  standard  vm-internal  192.168.2.1/24  no       -    -     igc0 wlan0
+
+  doas vm switch info internal
   # ------------------------
-  # Virtual Switch: public
+  # Virtual Switch: internal
   # ------------------------
   #   type: standard
-  #   ident: vm-public
+  #   ident: vm-internal
   #   vlan: -
-  #   physical-ports: wlan0 #   bytes-in: 0 (0.000B)
-  #   bytes-out: 720 (720.000B)
-
+  #   physical-ports: igc0 wlan0
+  #   bytes-in: 350864 (342.640K)
+  #   bytes-out: 298315 (291.323K) 
 #+END_SRC
 
 
-** Install =Fedora= guest
+*** What actual change on the host
 
-*** Download minimal ISO
+When you created a virtual switch, you can see =ifconfig= list a new bridge NIC like this:
 
-Go to here to grab the ISO link:
+The new NIC's name will be =vm-YOUR_VIRTUAL_SWITCH_NAME=
 
-X86_64 - https://alt.fedoraproject.org/
-AARCH64 - https://alt.fedoraproject.org/alt/
+#+BEGIN_SRC bash
+vm-internal: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+        options=0
+        ether 26:d5:e0:84:0b:5e
+        inet 192.168.2.1 netmask 0xffffff00 broadcast 192.168.2.255
+        id 00:00:00:00:00:00 priority 32768 hellotime 2 fwddelay 15
+        maxage 20 holdcnt 6 proto rstp maxaddr 2000 timeout 1200
+        root id 00:00:00:00:00:00 priority 32768 ifcost 0 port 0
+        member: igc0 flags=143<LEARNING,DISCOVER,AUTOEDGE,AUTOPTP>
+                ifmaxaddr 0 port 1 priority 128 path cost 20000
+        groups: bridge vm-switch viid-d1efa@
+        nd6 options=9<PERFORMNUD,IFDISABLED>
+#+END_SRC
 
-Then run =doas vm ISO_LINK_URL_HERE= to downlaod the ISO file into ~$vm_dir/.iso~ folder.
 
-After that, you can run =vm iso= to list all downloaded ISOs:
+Also, new rules are added to routing table:
+
+#+BEGIN_SRC bash
+  netstat  -rn4
+
+  # Routing tables
+  # 
+  # Internet:
+  # Destination        Gateway            Flags     Netif Expire
+  # default            192.168.1.200      UGS        igc0
+  # 127.0.0.1          link#2             UH          lo0
+  # 192.168.1.0/24     link#3             U         wlan0
+  # 192.168.1.160      link#2             UHS         lo0
+  # 192.168.1.190      link#2             UHS         lo0
+  192.168.2.0/24     link#5             U      vm-inter
+  192.168.2.1        link#2             UHS         lo0 
+#+END_SRC
+
+
+*** Virtual switch configuration file
+
+#+BEGIN_SRC bash
+  cat ~/vm/.config/system.conf
+
+  # vm set console=tmux
+  # switch_list="internal"
+  # type_internal="standard"
+  # ports_internal="igc0 wlan0"
+  # addr_internal="192.168.2.1/24" 
+#+END_SRC
+
+
+*** How to switch physical interface for the given virtual switch
+
+For example, my =TH80= both connect =wlan0= for WIFI and =igc0= Ethernet (as the default gateway), but I attach =igc0= when creating =internal= virtual switch.
+
+So, when I unplug the ethernet cable and reboot, =FreeBSD= will switch the default gateway to =wlan0= automatically. But the =internal= virtaul switch won't be able to access internet, as it binds to =igc0= when created!!
+
+So, I have to do the following between switching physical NICs:
+
+#+BEGIN_SRC bash
+  #
+  # If I use Ethernet
+  #
+  doas vm switch remove internal wlan0
+  doas vm switch add internal igc0
+
+  #
+  # If I use WIFI
+  #
+  doas vm switch remove internal igc0
+  doas vm switch add internal wlan0
+#+END_SRC
+
+
+** NAT feature on virtual switch
+
+Unfortunately, internal =NAT= configuration has been removed as of =v1.2=. As a shell script, we relied on configuring external systems such as =pf= and =dnsmasq= to provide =NAT= functions. Some users want to use other tools/firewalls, and many users found =NAT= broken due to existing pf or =dnsmasq= configuration they had in place.
+
+That said, you better to manually configure =NAT= rather than to try and enable it via =vm-bhyve=, it's not that difficult than you think:)
+
+https://github.com/churchers/vm-bhyve/wiki/NAT-Configuration
+
+
+** Download ISO
+
+You can  run =doas vm ISO_LINK_URL_HERE= to downlaod the ISO file or download somewhere else (get the benefit from mirror site) and then move it into ~$vm_dir/.iso~ folder.
+
+After that, you can run =doas vm iso= to list all downloaded ISOs:
 
 #+BEGIN_SRC bash
   doas vm iso
@@ -133,130 +240,47 @@ After that, you can run =vm iso= to list all downloaded ISOs:
 #+END_SRC
 
 
-*** Create guest configuration 
+** Create guest configuration 
 
-Place the following settings into  ~$vm_dir/.template/fedora.conf~:
+All available settings are in =/usr/local/share/examples/vm-bhyve/config.sample=. You better to modify on top of the existing pre-configed template!!!
 
-#+BEGIN_SRC bash
-  #
-  # loader
-  # Specify the loader to use for the guest. This can either be
-  # one of the original bhyve loaders (bhyveload/grub), or
-  # you can specify to use uefi firmware to load the guest
-  #
-  # Valid Options: bhyveload,grub,uefi,uefi-csm
-  #
-  loader="uefi"
+You should copy one of them, modify it and save to =$vm_dir/.template=.
 
-  cpu="16"
-  memory="16G"
-  network0_type="virtio-net"
-  network0_switch="public"
-  disk0_type="virtio-blk"
-  disk0_name="disk0.img"
-  disk0_size="60G"
+** Create guest VM
 
-  # graphics
-  # Set to a value other than [empty]/off/false/no/0 to enable
-  # the bhyve frame buffer device. This creates a graphics console
-  # in the guest, which is accessible using vnc
-  #
-  # By default this is set at 800x600, and we find an available vnc
-  # port starting at 5900. The port can be seen in vm list|info output.
-  #
-  graphics="yes"
-
-  # graphics_port
-  # Use this option to specify a fixed network port that the vnc service
-  # should listen on. If specifying port numbers manually, please make
-  # sure all guests have a unique port.
-  #
-  graphics_port="5999"
-
-  # graphics_listen
-  # By default, the vnc service will listen on 0.0.0.0, so you can connect by
-  # using any IP address assigned to the bhyve host. Use this option if you
-  # want to specify a specific IP address that the service should bind to
-  #
-  # Default: 0.0.0.0
-  #
-  # graphics_listen="10.0.0.1"
-
-  # graphics_res
-  # This allows you to specify a resolution for the graphical console.
-  # Pleas note only the below options are supported
-  #
-  # Default: 800x600
-  # Valid Options: 1920x1200,1920x1080,1600x1200,1600x900,1280x1024,1280x720,1024x768,800x600,640x480
-  #
-  graphics_res="1600x1200"
-
-  # graphics_wait
-  # Set to yes in order to make guest boot wait for the VNC console
-  # to be opened. This can help when installing operating systems
-  # that require immediate keyboard input (such as a timed 'enter setup'
-  # screen). The default setting of auto will add the wait option
-  # if the guest is run in install mode. Note that in auto mode
-  # the wait option will only be present on the first boot. If you
-  # need the guest to wait on every boot during install, the yes
-  # option should be used.
-  #
-  # Valid Options: no,yes,auto
-  #
-  graphics_wait="auto"
-
-  # graphics_vga
-  # valid options for this are on/off/io. io is the default
-  # please see the bhyve man page for details on this option
-  #
-  # graphics_vga="io"
-
-  # xhci_mouse
-  # When graphics are enabled, a PS2 mouse is created by default. This
-  # doesn't track very well, and can be replaced with an XHCI mouse
-  # by setting this option to yes. Please note only some guests support
-  # this mouse
-  #
-  xhci_mouse="yes"
-#+END_SRC
-
-All available settings are in =/usr/local/share/examples/vm-bhyve/config.sample=.
-
-
-*** Create guest VM
+=-t arch_linux=: Use =$vm_dir/.template/arch_linux.conf= as template to create VM
+=-s 20GB=: Init 20GB virtual disk, override the =disk0.size= in config file
+=my-arch=: VM name
 
 #+BEGIN_SRC bash
   #
-  # `-t fedora`: Use `$vm_dir/.template/fedora.conf` as template to create VM
-  # `-s 60GB`: Init 60GB virtual disk, override the `disk0.size` in config file
-  # `my-fedora`: VM name
+  # Create VM, just created, not start the vm at all!!!
   #
-  doas vm create -t fedora my-fedora
+  doas vm create -t arch_linux my-arch
 
   #
   # List created VM
   #
   doas vm list
-  # NAME       DATASTORE  LOADER     CPU  MEMORY  VNC  AUTO  STATE
-  # my-fedora  default    bhyveload  16   16G     -    No    Stopped
+  # NAME     DATASTORE  LOADER  CPU  MEMORY  VNC  AUTO  STATE
+  # my-arch  default    uefi    16   16G     -    No    Stopped
 
   #
   # Here is where the VM located
   #
-  ls -lht ~/vm/my-fedora/
-  # total 6
-  # -rw-------  1 root wheel   60G Feb 21 17:34 disk0.img
-  # -rw-r--r--  1 root wheel  213B Feb 21 17:34 my-fedora.conf
-  # -rw-r--r--  1 root wheel   94B Feb 21 17:34 vm-bhyve.log
+  ls -lht ~/vm/my-arch/
+  # -rw-r--r--  1 root wheel  2.7K Mar 17 12:33 my-arch.conf
+  # -rw-------  1 root wheel   30G Mar 17 12:33 disk0.img
+  # -rw-r--r--  1 root wheel   92B Mar 17 12:33 vm-bhyve.log
 #+END_SRC
 
 
-=~/vm/my-fedora/my-fedora.conf= is a copy of the given template with the newly added =uuid= and unique NIC mac address:
+=~/vm/my-arch/my-arch.conf= is a copy of the given template with the newly added =uuid= and unique NIC mac address:
 
 #+BEGIN_SRC bash
-  bat ~/vm/my-fedora/my-fedora.conf
+  bat ~/vm/my-arch/my-arch.conf
 
-  # loader="bhyveload"
+  # loader="uefi"
   # cpu=16
   # memory=16G
   # network0_type="virtio-net"
@@ -268,48 +292,47 @@ All available settings are in =/usr/local/share/examples/vm-bhyve/config.sample=
   # graphics_res="1600x1200"
   # graphics_wait="auto"
   # xhci_mouse="yes"
-  # uuid="8634213c-d072-11ee-a383-5847ca7014b5"
-  # network0_mac="58:9c:fc:03:d8:0d"
+  # uuid="9ec2dd39-e3ed-11ee-997c-5847ca7014b5"
+  # network0_mac="58:9c:fc:02:33:f4"
 #+END_SRC
 
 
 Also, you can list the vm info like this:
 
 #+BEGIN_SRC bash
-  doas vm info my-fedora
-
+  doas vm info my-arch
   # ------------------------
-  # Virtual Machine: my-fedora
+  # Virtual Machine: my-arch
   # ------------------------
   #   state: stopped
   #   datastore: default
-  #   loader: uefi
-  #   uuid: d7aa0d01-d080-11ee-812f-5847ca7014b5
+  #   loader: grub
+  #   uuid: 9ec2dd39-e3ed-11ee-997c-5847ca7014b5
   #   cpu: 16
   #   memory: 16G
-
+  # 
   #   network-interface
   #     number: 0
   #     emulation: virtio-net
-  #     virtual-switch: public
-  #     fixed-mac-address: 58:9c:fc:05:f8:6a
+  #     virtual-switch: internal
+  #     fixed-mac-address: 58:9c:fc:02:33:f4
   #     fixed-device: -
-
+  # 
   #   virtual-disk
   #     number: 0
   #     device-type: file
   #     emulation: virtio-blk
   #     options: -
-  #     system-path: /home/wison/vm/my-fedora/disk0.img
-  #     bytes-size: 64424509440 (60.000G)
+  #     system-path: /home/wison/vm/my-arch/disk0.img
+  #     bytes-size: 32212254720 (30.000G)
   #     bytes-used: 1024 (1.000K)
 #+END_SRC
 
 
-If you want to re-create a VM, you can run ~doas vm destroy my-fedora~ to delete it and re-create again.
+If you want to re-create a VM, you can run ~doas vm destroy my-arch~ to delete it and re-create again.
 
 
-*** Launch the install process
+** Launch the guest installation process
 
 First, you need a VNC client to connecto the guest VNC server, let's install it:
 
@@ -317,16 +340,16 @@ First, you need a VNC client to connecto the guest VNC server, let's install it:
   #
   # `wlvncc`: A work-in-progress implementation of a Wayland native VNC client. 
   #
-  doas install wlvncc
+  doas pkg install wlvncc
 #+END_SRC
 
-Now, let's install Fedora:
+Now, let's install Arch Linux:
 
 #+BEGIN_SRC bash
   #
   # `-f`: Guest will be started in the foreground on stdio. 
   #
-  doas vm install -f my-fedora Fedora-Everything-netinst-x86_64-39-1.5.iso
+  doas vm install -f my-arch archlinux-2024.03.01-x86_64.iso
 #+END_SRC
 
 
@@ -337,8 +360,8 @@ After that, list the VNC port and connect to it to finish the installation proce
   # List guest vnc port
   #
   doas vm list
-  # NAME       DATASTORE  LOADER  CPU  MEMORY  VNC           AUTO  STATE
-  # my-fedora  default    uefi    16   16G     0.0.0.0:5999  No    Locked (th80)
+  # NAME     DATASTORE  LOADER  CPU  MEMORY  VNC           AUTO  STATE
+  # my-arch  default    uefi    16   16G     0.0.0.0:5999  No    Locked (th80)
 
   #
   # Connect to it (as it will wait for the VNC connect before ISO boot)
@@ -347,7 +370,7 @@ After that, list the VNC port and connect to it to finish the installation proce
 #+END_SRC
 
 
-*** Run and stop and related VM stuff
+** Run and stop and related VM stuff
 
 If you're currently inside a tmux session, then you HAVE TO detech or open a new terminal before running the following command, as it will start a new tmux and attach into it immediately.
 
@@ -356,12 +379,12 @@ If you're currently inside a tmux session, then you HAVE TO detech or open a new
   # `-f`: Guest will be started in the foreground on stdio. 
   # `-i`: Starts the guest in interactive mode on a foreground tmux session. 
   #
-  doas vm start -fi my-fedora
-  doas vm stop my-fedora
+  doas vm start -fi my-arch
+  doas vm stop my-arch
 
   #
   # Force to power off when needed
   #
-  doas vm poweroff -f my-fedora
+  doas vm poweroff -f my-arch
 #+END_SRC
 

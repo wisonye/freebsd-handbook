@@ -1,0 +1,961 @@
+* Install Arch Linux Guest
+
+** Create guest configuration 
+
+All available settings are in =/usr/local/share/examples/vm-bhyve/config.sample=. You better to modify on top of the existing pre-configed template!!!
+
+You should copy one of them, modify it and save to =$vm_dir/.template=.
+
+
+Plz pay attention to the ~archisolabel=ARCH_YYYYMM~ in the following =arch_linux.conf=, you have to replace that ~YYYYMM~ to match your downloaded ISO!!!! For example:
+
+#+BEGIN_SRC bash
+  doas vm iso
+
+  # DATASTORE           FILENAME
+  # default             Fedora-Everything-netinst-x86_64-39-1.5.iso
+  # default             archlinux-2024.03.01-x86_64.iso 
+#+END_SRC
+
+That means you should set it to =archisolabel=ARCH_202403=, otherwise, it won't work!!!
+
+
+Place the following settings into  ~$vm_dir/.template/arch_linux.conf~:
+
+#+BEGIN_SRC bash
+  #
+  # loader
+  # Specify the loader to use for the guest. This can either be
+  # one of the original bhyve loaders (bhyveload/grub), or
+  # you can specify to use uefi firmware to load the guest
+  #
+  # Valid Options: bhyveload,grub,uefi,uefi-csm
+  #
+  loader="grub"
+  grub_install0="linux /arch/boot/x86_64/vmlinuz-linux archisobasedir=arch archisolabel=ARCH_YYYYMM ro"
+  grub_install1="initrd /arch/boot/x86_64/initramfs-linux.img"
+
+  #
+  # You can run `sysctl hw.ncpu | cut -d: -f2` to get the total CPU cores
+  #
+  cpu="16"
+  memory="16G"
+
+  #
+  # Virtual disk, make sure to change the size to what you want
+  #
+  disk0_type="virtio-blk"
+  disk0_name="disk0.img"
+  disk0_size="30G"
+
+  #
+  # Virtual network and switch
+  #
+  network0_type="virtio-net"
+  network0_switch="internal"
+
+  #
+  # graphics
+  #
+  # Set to a value other than [empty]/off/false/no/0 to enable
+  # the bhyve frame buffer device. This creates a graphics console
+  # in the guest, which is accessible using vnc
+  #
+  # By default this is set at 800x600, and we find an available vnc
+  # port starting at 5900. The port can be seen in vm list|info output.
+  #
+  graphics="no"
+
+  #
+  # graphics_port
+  #
+  # Use this option to specify a fixed network port that the vnc service
+  # should listen on. If specifying port numbers manually, please make
+  # sure all guests have a unique port.
+  #
+  graphics_port="5999"
+
+  #
+  # graphics_listen
+  #
+  # By default, the vnc service will listen on 0.0.0.0, so you can connect by
+  # using any IP address assigned to the bhyve host. Use this option if you
+  # want to specify a specific IP address that the service should bind to
+  #
+  # Default: 0.0.0.0
+  #
+  # graphics_listen="10.0.0.1"
+
+  #
+  # graphics_res
+  #
+  # This allows you to specify a resolution for the graphical console.
+  # Pleas note only the below options are supported
+  #
+  # Default: 800x600
+  # Valid Options: 1920x1200,1920x1080,1600x1200,1600x900,1280x1024,1280x720,1024x768,800x600,640x480
+  #
+  graphics_res="1600x1200"
+
+  #
+  # graphics_wait
+  #
+  # Set to yes in order to make guest boot wait for the VNC console
+  # to be opened. This can help when installing operating systems
+  # that require immediate keyboard input (such as a timed 'enter setup'
+  # screen). The default setting of auto will add the wait option
+  # if the guest is run in install mode. Note that in auto mode
+  # the wait option will only be present on the first boot. If you
+  # need the guest to wait on every boot during install, the yes
+  # option should be used.
+  #
+  # Valid Options: no,yes,auto
+  #
+  graphics_wait="auto"
+
+  #
+  # graphics_vga
+  #
+  # valid options for this are on/off/io. io is the default
+  # please see the bhyve man page for details on this option
+  #
+  # graphics_vga="io"
+
+  #
+  # xhci_mouse
+  #
+  # When graphics are enabled, a PS2 mouse is created by default. This
+  # doesn't track very well, and can be replaced with an XHCI mouse
+  # by setting this option to yes. Please note only some guests support
+  # this mouse
+  #
+  xhci_mouse="yes"
+#+END_SRC
+
+I set ~graphics="off"~ that's because I don't need to install =X= or another =WM= for my arch, if you that, you have to set it to ~graphics="yes"~ !i!!
+I set ~graphics="off"~ that's because I don't need to install =X= or another =WM= for my arch, if you that, you have to set it to ~graphics="yes"~ !i!!
+I set ~graphics="off"~ that's because I don't need to install =X= or another =WM= for my arch, if you that, you have to set it to ~graphics="yes"~ !i!!
+
+One important thing is that:
+
+If you plan to run more than on guest at the same time with graphic is on, then you better to make sure every guest uses a different =graphics_port= for VNC to connect!!!
+
+
+** Create guest VM
+
+=-t arch_linux=: Use =$vm_dir/.template/arch_linux.conf= as template to create VM
+=-s 20GB=: Init 20GB virtual disk, override the =disk0.size= in config file
+=my-arch=: VM name
+
+#+BEGIN_SRC bash
+  #
+  # Create VM, just created, not start the vm at all!!!
+  #
+  doas vm create -t arch_linux my-arch
+
+  #
+  # List created VM
+  #
+  doas vm list
+  # NAME     DATASTORE  LOADER  CPU  MEMORY  VNC  AUTO  STATE
+  # my-arch  default    uefi    16   16G     -    No    Stopped
+
+  #
+  # Here is where the VM located
+  #
+  ls -lht ~/vm/my-arch/
+  # -rw-r--r--  1 root wheel  2.7K Mar 17 12:33 my-arch.conf
+  # -rw-------  1 root wheel   30G Mar 17 12:33 disk0.img
+  # -rw-r--r--  1 root wheel   92B Mar 17 12:33 vm-bhyve.log
+#+END_SRC
+
+
+=~/vm/my-arch/my-arch.conf= is a copy of the given template with the newly added =uuid= and unique NIC mac address:
+
+#+BEGIN_SRC bash
+  bat ~/vm/my-arch/my-arch.conf
+
+  # loader="uefi"
+  # cpu=16
+  # memory=16G
+  # network0_type="virtio-net"
+  # network0_switch="public"
+  # disk0_type="virtio-blk"
+  # disk0_name="disk0.img"
+  # graphics="yes"
+  # graphics_port="5999"
+  # graphics_res="1600x1200"
+  # graphics_wait="auto"
+  # xhci_mouse="yes"
+  # uuid="9ec2dd39-e3ed-11ee-997c-5847ca7014b5"
+  # network0_mac="58:9c:fc:02:33:f4"
+#+END_SRC
+
+
+Also, you can list the vm info like this:
+
+#+BEGIN_SRC bash
+  doas vm info my-arch
+  # ------------------------
+  # Virtual Machine: my-arch
+  # ------------------------
+  #   state: stopped
+  #   datastore: default
+  #   loader: grub
+  #   uuid: 9ec2dd39-e3ed-11ee-997c-5847ca7014b5
+  #   cpu: 16
+  #   memory: 16G
+  # 
+  #   network-interface
+  #     number: 0
+  #     emulation: virtio-net
+  #     virtual-switch: internal
+  #     fixed-mac-address: 58:9c:fc:02:33:f4
+  #     fixed-device: -
+  # 
+  #   virtual-disk
+  #     number: 0
+  #     device-type: file
+  #     emulation: virtio-blk
+  #     options: -
+  #     system-path: /home/wison/vm/my-arch/disk0.img
+  #     bytes-size: 32212254720 (30.000G)
+  #     bytes-used: 1024 (1.000K)
+#+END_SRC
+
+
+If you want to re-create a VM, you can run ~doas vm destroy my-arch~ to delete it and re-create again.
+
+
+** Launch the guest installation process
+
+First, you need a VNC client to connecto the guest VNC server, let's install it:
+
+#+BEGIN_SRC bash
+  #
+  # `wlvncc`: A work-in-progress implementation of a Wayland native VNC client. 
+  #
+  doas pkg install wlvncc
+#+END_SRC
+
+Now, let's install Arch Linux:
+
+#+BEGIN_SRC bash
+  #
+  # `-f`: Guest will be started in the foreground on stdio. 
+  #
+  doas vm install -f my-arch archlinux-2024.03.01-x86_64.iso
+#+END_SRC
+
+
+After that, the arch vm should run from your current console, follow the next section to install Arch Linux.
+
+If you set ~graphics="yes"~, then you can list the VNC port and connect to it to finish the installation process:
+
+#+BEGIN_SRC bash
+  #
+  # List guest vnc port
+  #
+  doas vm list
+  # NAME     DATASTORE  LOADER  CPU  MEMORY  VNC           AUTO  STATE
+  # my-arch  default    uefi    16   16G     0.0.0.0:5999  No    Locked (th80)
+
+  #
+  # Connect to it (as it will wait for the VNC connect before ISO boot)
+  #
+  wlvncc 127.0.0.1 5999
+#+END_SRC
+
+
+** Arch Linux install process
+
+*** Partitioning
+
+By default, arch should run in =BIOS= mode, as you set ~load="grub"~ (NOT ~load="uefi"~), you can confirm that by running:
+
+#+BEGIN_SRC bash
+  cat /sys/firmware/efi/fw_platform_size
+
+  # cat: /sys/firmware/efi/fw_platform_size: No such file or directory
+#+END_SRC
+
+That means you're currently in =BIOS= mode. So, you don't need to create =GPT= (GUID Partition Table)!!!
+
+Let's do the following default partition layout:
+
+#+BEGIN_SRC bash
+  fdisk /dev/vda 
+
+  #
+  # Type `o` to create MBR partition table
+  #
+  o
+  # Created a new DOS (MBR) disklabel with disk identifier 0xdc219373.
+
+  #
+  # Create `512M` primary partition
+  #
+  n
+  p
+  [ENTER]
+  [ENTER]
+  +512M
+
+  #
+  # Create full of reset primary partition
+  #
+  n
+  p
+  [ENTER]
+  [ENTER]
+  [ENTER]
+
+  #
+  # Type `p` to show the created partition table for reviewing purpose
+  #
+  p
+  # Disklabel type: dos
+  # Disk identifier: 0xdc219373
+  # 
+  # Device     Boot   Start      End  Sectors  Size Id Type
+  # /dev/vda1          2048  1050623  1048576  512M 83 Linux
+  # /dev/vda2       1050624 62914559 61863936 29.5G 83 Linux
+
+  #
+  # Type `w` to write the change to disk
+  #
+  w
+#+END_SRC
+
+
+*** Format partitions
+
+#+BEGIN_SRC bash
+  mkfs.fat -F32 /dev/vda1
+  mkfs.ext4 /dev/vda2
+#+END_SRC
+
+
+*** Mount partitions
+
+#+BEGIN_SRC bash
+  mount /dev/vda2 /mnt
+
+  mkdir /mnt/boot
+  mount /dev/vda1 /mnt/boot
+#+END_SRC
+
+
+Confirm it has been mounted correctly:
+
+#+BEGIN_SRC bash
+  df -Th | grep "/mnt"
+  # /dev/vda2      ext4       29G  2.1M   28G   1% /mnt
+  # /dev/vda1      vfat      511M  4.0K  511M   1% /mnt/boot
+#+END_SRC
+
+
+*** Install necessary packages and create =fstab=
+
+#+BEGIN_SRC bash
+  pacstrap -K /mnt base linux linux-lts linux-firmware man openssh git base-devel neovim python-pynvim procs bat ripgrep lf fish
+
+  genfstab -U /mnt >> /mnt/etc/fstab
+#+END_SRC
+
+
+*** Change root into =/mnt= and finish the installation
+
+#+BEGIN_SRC bash
+  arch-chroot /mnt
+#+END_SRC
+
+
+**** Choose timezone
+
+#+BEGIN_SRC bash
+  #
+  # ln -sf /usr/share/zoneinfo/YOUR_REGION/YOUR_CITY /etc/localtime
+  #
+  # For example:
+  ln -sf /usr/share/zoneinfo/Pacific/Auckland /etc/localtime
+#+END_SRC
+
+
+**** Generate =/etc/adjtime=
+
+#+BEGIN_SRC bash
+  hwclock --systohc
+#+END_SRC
+
+
+**** Make sure you have the correct =/etc/pacmand.d/mirrorlist=
+
+By defualt, =/etc/pacman.d/mirrorlist= should be the same copy from the =Live Arch=, but you better to confirm by running the following command:
+
+#+BEGIN_SRC bash
+  bat /etc/pacman.d/mirrorlist
+
+  # ───────┬────────────────────────────────────────────────────────────────────────
+  #        │ File: /etc/pacman.d/mirrorlist
+  # ───────┼────────────────────────────────────────────────────────────────────────
+  #    1   │ #######################################################################
+  #        │ #########
+  #    2   │ ################# Arch Linux mirrorlist generated by Reflector ########
+  #        │ #########
+  #    3   │ #######################################################################
+  #        │ #########
+  #    4   │
+  #    5   │ # With:       reflector @/etc/xdg/reflector/reflector.conf
+  #    6   │ # When:       2024-03-17 02:09:05 UTC
+  #    7   │ # From:       https://archlinux.org/mirrors/status/json/
+  #    8   │ # Retrieved:  2024-03-17 02:07:35 UTC
+  #    9   │ # Last Check: 2024-03-17 01:58:10 UTC
+  #   10   │
+  #   11   │ Server = https://mirror.2degrees.nz/archlinux/$repo/os/$arch
+  #   12   │ Server = https://mirror.fsmg.org.nz/archlinux/$repo/os/$arch
+  #   13   │ Server = https://archlinux.ourhome.kiwi/archlinux/$repo/os/$arch
+  # ───────┴────────────────────────────────────────────────────────────────────────
+#+END_SRC
+
+That means correct:)
+
+
+Also, enable the =color= output:
+
+#+BEGIN_SRC bash
+  nvim /etc/pacman.conf
+  # Search and enable `Color` line, save and exit
+#+END_SRC
+
+
+**** Localization
+
+=nvim /etc/locale.gen= and uncomment =en_US.UTF-8 UTF-8= line  and other needed =locales=.
+
+Then, genereate the locale settings:
+
+#+BEGIN_SRC bash
+  locale-gen
+
+  echo "LANG=en_US.UTF-8" > /etc/locale.conf
+#+END_SRC
+
+
+=nvim /etc/vconsole.conf= and add your custom keybinding (if needed):
+
+#+BEGIN_SRC bash
+  # Add my custom settings below (`Caps_Lock` works like `Escape`) to
+  # `/etc/vconsole.conf`.
+  # Save and exit.
+  KEYMAP=us
+  keycode 9 = Escape
+  keycode 66 = Escape
+#+END_SRC
+
+
+**** Hostname and host settings
+
+=nvim /etc/hostname=, set to your hostname.
+
+=nvim /etc/hosts= with the base settings like below:
+
+#+BEGIN_SRC bash
+  127.0.0.1	localhost
+  ::1		localhost
+  127.0.1.1	YOUR_HOSTNAME_HERE.localdomain	YOUR_HOSTNAME_HERE
+#+END_SRC
+
+
+**** Set root password
+
+#+BEGIN_SRC bash
+  passwd 
+#+END_SRC
+
+
+**** Install boot loader
+
+#+BEGIN_SRC bash
+  pacman --sync --refresh grub intel-ucode  
+
+  #
+  # Install boot loader to `/dev/vda` (that should be a disk, not a partition!!!)
+  #
+  grub-install --target=i386-pc /dev/vda
+
+  #
+  # Generate grub configuration file
+  #
+  grub-mkconfig -o /boot/grub/grub.cfg
+#+END_SRC
+
+
+**** Add a new user
+
+#+BEGIN_SRC bash
+  # Add new user
+  useradd -m -G wheel YOUR_USER_NAME
+
+  # Set password
+  passwd YOUR_USER_NAME
+#+END_SRC
+
+
+**** Install and configure =doas=
+
+#+BEGIN_SRC bash
+  pacman --sync --refresh opendoas
+#+END_SRC
+
+
+Then create =/etc/doas.conf= with the following settings:
+
+#+BEGIN_SRC bash
+  # nopass   The user is not required to enter a password.
+  # keepenv  Environment variables other than those listed in doas(1) are
+  #          retained when creating the environment for the new process.
+  #
+  # Read `man doas.conf` for more details
+  permit nopass keepenv setenv {PATH} YOUR_USER_NAME as root
+#+END_SRC
+
+
+Make sure to change the file permission:
+
+#+BEGIN_SRC bash
+  chown -c root:root /etc/doas.conf
+  chmod -c 0400 /etc/doas.conf
+#+END_SRC
+
+
+**** Enable services
+
+#+BEGIN_SRC bash
+  systemctl enable sshd.service
+#+END_SRC
+
+
+**** Static ip configuration
+
+The =enp0s5= here just a NIC example, you can run =ip add= to get it, make sure to change your correct NIC!!!
+
+Create =/etc/systemd/network/20-wired.network= with the following settings:
+
+#+BEGIN_SRC bash
+  [Match]
+  Name=enp0s5
+
+  [Network]
+  Address=192.168.2.10/24
+  Gateway=192.168.2.1
+  DNS=192.168.2.1
+#+END_SRC
+
+
+Enable and restart the related services:
+
+#+BEGIN_SRC bash
+  systemctl enable systemd-networkd
+  systemctl restart systemd-networkd
+
+  systemctl enable systemd-resolved.service
+  systemctl restart systemd-resolved.service
+#+END_SRC
+
+Right now, NIC should work:
+
+#+BEGIN_SRC bash
+  ip add
+
+  # 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+  #     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+  #     inet 127.0.0.1/8 scope host lo
+  #        valid_lft forever preferred_lft forever
+  #     inet6 ::1/128 scope host noprefixroute
+  #        valid_lft forever preferred_lft forever
+  # 2: enp0s5: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+  #     link/ether 58:9c:fc:0b:40:26 brd ff:ff:ff:ff:ff:ff
+  #     inet 192.168.2.10/24 brd 192.168.2.255 scope global enp0s5
+  #        valid_lft forever preferred_lft forever
+  #     inet6 2407:7000:98b6:b200:5a9c:fcff:fe0b:4026/64 scope global dynamic mngtmpaddr noprefixroute
+  #        valid_lft 1295953sec preferred_lft 647953sec
+  #     inet6 fe80::5a9c:fcff:fe0b:4026/64 scope link proto kernel_ll
+  #        valid_lft forever preferred_lft forever
+
+  ip route show
+
+  # default via 192.168.2.1 dev enp0s5 proto static
+  # 192.168.2.0/24 dev enp0s5 proto kernel scope link src 192.168.2.10
+#+END_SRC
+
+
+**** Save the grub parameters for later use
+
+#+BEGIN_SRC bash
+  nvim /boot/grub/grub.cfg
+#+END_SRC
+
+
+Search =menuentry 'Arch Linux'=, then you should see the following settings:
+
+#+BEGIN_SRC bash
+  ### END /etc/grub.d/00_header ###
+
+  ### BEGIN /etc/grub.d/10_linux ###
+  menuentry 'Arch Linux' --class arch --class gnu-linux --class gnu --class os $mee
+  nuentry_id_option 'gnulinux-simple-27a6a3e7-44cd-4fe1-9a0d-c0e5abeebb09' {
+          load_video
+          set gfxpayload=keep
+          insmod gzio
+          insmod part_msdos
+          insmod fat
+          search --no-floppy --fs-uuid --set=root 1706-1977
+          echo    'Loading Linux linux-lts ...'
+          linux   /vmlinuz-linux-lts root=UUID=27a6a3e7-44cd-4fe1-9a0d-c0e5abeebb00
+  9 rw  loglevel=3 quiet
+          echo    'Loading initial ramdisk ...'
+          initrd  /intel-ucode.img /initramfs-linux-lts.img
+  }
+#+END_SRC
+
+Save it to somewhere else, you need it later!!!
+
+
+**** Exit =chroot= and umount folders
+
+#+BEGIN_SRC bash
+  exit
+
+  #
+  # Now, you should back to the `Live Aarch` root
+  #
+  umount /mnt/boot /mnt && sync
+#+END_SRC
+
+
+**** Stop the VM
+
+#+BEGIN_SRC bash
+  doas vm stop my-arch
+#+END_SRC
+
+Wait for it to shutdown.
+
+If it's still can't shutdown correctly after a while, then you have to poweroff like this:
+
+#+BEGIN_SRC bash
+  doas vm poweroff my-arch
+#+END_SRC
+
+
+*** Update vm configuration, very important!!!
+
+Now, you need to add something to the vm configuration in order for it's able to boot correctly:
+
+#+BEGIN_SRC bash
+  doas nvim ~/vm/my-arch/my-arch.conf
+#+END_SRC
+
+
+Remember that you've already saved the installed grub configuration settings about the =menuentry 'Arch Linux'=?
+
+It contains 2 important boot settings like below:
+
+#+BEGIN_SRC bash
+  linux   /vmlinuz-linux-lts root=UUID=27a6a3e7-44cd-4fe1-9a0d-c0e5abeebb00 9 rw  loglevel=3 quiet
+  initrd  /intel-ucode.img /initramfs-linux-lts.img
+#+END_SRC
+
+
+Now. you need to add them to VM's configuration file like below:
+
+#+BEGIN_SRC bash
+  grub_run0="linux   /vmlinuz-linux-lts root=UUID=27a6a3e7-44cd-4fe1-9a0d-c0e5abeebb09 rw  loglevel=3 quiet"
+  grub_run1="initrd  /intel-ucode.img /initramfs-linux-lts.img"
+#+END_SRC
+
+
+*** Re-start VM
+
+Now, restart the stopped VM:
+
+#+BEGIN_SRC bash
+  doas vm start -f my-arch
+#+END_SRC
+
+Or 
+
+#+BEGIN_SRC bash
+  doas vm start my-arch
+  doas vm console my-arch
+#+END_SRC
+
+
+** Fix vm can't boot issue
+
+If you see the following error:
+
+#+BEGIN_SRC bash
+  ERROR: device 'UUID=27a6a3e7-44cd-4fe1-9a0d-c0e5abeebb00' not found. Skipping fsck.
+  mount: /new_root: can't find UUID=27a6a3e7-44cd-4fe1-9a0d-c0e5abeebb00.
+  ERROR: Failed to mount 'UUID=27a6a3e7-44cd-4fe1-9a0d-c0e5abeebb00' on real root
+  You are now being dropped into an emergency shell.
+  sh: can't access tty; job control turned off
+#+END_SRC
+
+
+Then you can use the ISO to reboot and fix the kernel like this:
+
+*** Reboot by ISO
+
+#+BEGIN_SRC bash
+  doas vm install -f my-arch archlinux-2024.03.01-x86_64.iso 
+#+END_SRC
+
+
+*** Mount the installed Arch Linux and change root into it
+
+#+BEGIN_SRC bash
+  mount /dev/vda2 /mnt
+  mount /dev/vda1 /mnt/boot
+
+  arch-chroot /mnt
+#+END_SRC
+
+
+*** Re-create the initial ramdisk environment for booting the Linux kernel.
+
+First, list what preset file you have so far:
+
+#+BEGIN_SRC bash
+  ls -lht /etc/mkinitcpio.d/
+
+  # -rw-r--r-- 1 root root 527 Mar 17 16:25 linux.preset
+  # -rw-r--r-- 1 root root 551 Mar 17 16:25 linux-lts.preset
+#+END_SRC
+
+Then re-create init ramdisk based on the preset you like to use:
+
+#+BEGIN_SRC bash
+  mkinitcpio -p linux-lts 
+
+  # ==> Building image from preset: /etc/mkinitcpio.d/linux-lts.preset: 'default'
+  # ==> Using default configuration file: '/etc/mkinitcpio.conf'
+  #   -> -k /boot/vmlinuz-linux-lts -g /boot/initramfs-linux-lts.img
+  # ==> Starting build: '6.6.22-1-lts'
+  #   -> Running build hook: [base]
+  #   -> Running build hook: [udev]
+  #   -> Running build hook: [autodetect]
+  #   -> Running build hook: [microcode]
+  #   -> Running build hook: [modconf]
+  #   -> Running build hook: [kms]
+  #   -> Running build hook: [keyboard]
+  # ==> WARNING: Possibly missing firmware for module: 'xhci_pci'
+  #   -> Running build hook: [keymap]
+  # /etc/vconsole.conf: line 2: keycode: command not found
+  # /etc/vconsole.conf: line 3: keycode: command not found
+  #   -> Running build hook: [consolefont]
+  # /etc/vconsole.conf: line 2: keycode: command not found
+  # /etc/vconsole.conf: line 3: keycode: command not found
+  # ==> WARNING: consolefont: no font found in configuration
+  #   -> Running build hook: [block]
+  #   -> Running build hook: [filesystems]
+  #   -> Running build hook: [fsck]
+  # ==> Generating module dependencies
+  # ==> Creating zstd-compressed initcpio image: '/boot/initramfs-linux-lts.img'
+  #   -> Early uncompressed CPIO image generation successful
+  # ==> Initcpio image generation successful
+  # ==> Building image from preset: /etc/mkinitcpio.d/linux-lts.preset: 'fallback'
+  # ==> Using default configuration file: '/etc/mkinitcpio.conf'
+  #   -> -k /boot/vmlinuz-linux-lts -g /boot/initramfs-linux-lts-fallback.img -S autodetect
+  # ==> Starting build: '6.6.22-1-lts'
+  #   -> Running build hook: [base]
+  #   -> Running build hook: [udev]
+  #   -> Running build hook: [microcode]
+  #   -> Running build hook: [modconf]
+  #   -> Running build hook: [kms]
+  # ==> WARNING: Possibly missing firmware for module: 'ast'
+  #   -> Running build hook: [keyboard]
+  # ==> WARNING: Possibly missing firmware for module: 'xhci_pci'
+  #   -> Running build hook: [keymap]
+  # /etc/vconsole.conf: line 2: keycode: command not found
+  # /etc/vconsole.conf: line 3: keycode: command not found
+  #   -> Running build hook: [consolefont]
+  # /etc/vconsole.conf: line 2: keycode: command not found
+  # /etc/vconsole.conf: line 3: keycode: command not found
+  # ==> WARNING: consolefont: no font found in configuration
+  #   -> Running build hook: [block]
+  # ==> WARNING: Possibly missing firmware for module: 'qed'
+  # ==> WARNING: Possibly missing firmware for module: 'wd719x'
+  # ==> WARNING: Possibly missing firmware for module: 'aic94xx'
+  # ==> WARNING: Possibly missing firmware for module: 'qla1280'
+  # ==> WARNING: Possibly missing firmware for module: 'qla2xxx'
+  # ==> WARNING: Possibly missing firmware for module: 'bfa'
+  #   -> Running build hook: [filesystems]
+  #   -> Running build hook: [fsck]
+  # ==> Generating module dependencies
+  # ==> Creating zstd-compressed initcpio image: '/boot/initramfs-linux-lts-fallback.img'
+  #   -> Early uncompressed CPIO image generation successful
+  # ==> Initcpio image generation successful
+#+END_SRC
+
+
+Now, grab those important boot parameters again:
+
+#+BEGIN_SRC bash
+  cat /boot/grub/grub.cfg | rg -A4 "UUID"
+
+  #         linux   /vmlinuz-linux-lts root=UUID=27a6a3e7-44cd-4fe1-9a0d-c0e5abeebb09 rw  loglevel=3 quiet
+  #         echo    'Loading initial ramdisk ...'
+  #         initrd  /intel-ucode.img /initramfs-linux-lts.img
+  # }
+#+END_SRC
+
+Redo the steps in section =Update vm configuration, very important!!!=
+
+
+*** Exit =chroot= and umount folders
+
+#+BEGIN_SRC bash
+  exit
+
+  #
+  # Now, you should back to the `Live Aarch` root
+  #
+  umount /mnt/boot /mnt && sync
+#+END_SRC
+
+
+*** Then restart your VM to see fix or not.
+
+#+BEGIN_SRC bash
+  shutdown -h now
+#+END_SRC
+
+After that, vm console should be clsoed, restart it:
+
+#+BEGIN_SRC bash
+  doas vm start -f my-arch 
+
+  # Starting my-arch
+  #   * found guest in /home/wison/vm/my-arch
+  #   * booting...
+  # [    0.150953] __common_interrupt: 1.55 No irq handler for vector
+  # [    0.150953] __common_interrupt: 2.55 No irq handler for vector
+  # [    0.150953] __common_interrupt: 3.55 No irq handler for vector
+  # [    0.150953] __common_interrupt: 4.55 No irq handler for vector
+  # [    0.150953] __common_interrupt: 5.55 No irq handler for vector
+  # [    0.150953] __common_interrupt: 6.55 No irq handler for vector
+  # [    0.150953] __common_interrupt: 7.55 No irq handler for vector
+  # [    0.150953] __common_interrupt: 8.55 No irq handler for vector
+  # [    0.150953] __common_interrupt: 9.55 No irq handler for vector
+  # [    0.150953] __common_interrupt: 10.55 No irq handler for vector
+  # kbd_mode: KDSKBMODE: Inappropriate ioctl for device
+  # /dev/vda2: clean, 66875/1933312 files, 824046/7732992 blocks
+  # pci_xhci: portregs_write to unpowered port 1
+  # pci_xhci: portregs_write to unpowered port 1
+  # pci_xhci: portregs_write to unpowered port 1
+  # pci_xhci: portregs_write to unpowered port 1
+  # pci_xhci: portregs_write to unpowered port 1
+  # pci_xhci: portregs_write to unpowered port 1
+  # pci_xhci: portregs_write to unpowered port 1
+  # pci_xhci: portregs_write to unpowered port 1
+  # pci_xhci: portregs_write to unpowered port 1
+  # pci_xhci: portregs_write to unpowered port 1
+  # pci_xhci: portregs_write to unpowered port 1
+  # pci_xhci: portregs_write to unpowered port 1
+  # pci_xhci: portregs_write to unpowered port 1
+  # pci_xhci: portregs_write to unpowered port 1
+  # 
+  # Arch Linux 6.6.22-1-lts (ttyS0)
+#+END_SRC
+
+
+Yes, it works again!!!
+
+
+** Start VM in different way
+
+If you're currently inside a tmux session, then you HAVE TO detech or open a new terminal before running the following command, as it will start a new tmux and attach into it immediately.
+
+You got a few ways to start the VM:
+
+*** VM console Under current terminal tab
+
+If you want the vm console connect to current terminal tab (in foreground) directly, you should use this way:
+
+#+BEGIN_SRC bash
+  #
+  # `-f`: Guest will be started in the foreground on stdio. 
+  #
+  doas vm start -fi my-arch
+#+END_SRC
+
+
+*** Start and connect VM console manually
+
+If you don't want to connect the vm console immediate, or you don't need the vm console at all (as you might ssh into it later), then you should use this way:
+
+#+BEGIN_SRC bash
+  #
+  # Start the VM in background
+  #
+  doas vm start my-arch
+
+  #
+  # Connect to its console when needed
+  #
+  doas vm console my-arch
+#+END_SRC
+
+
+** Stop and poweroff the VM
+
+#+BEGIN_SRC bash
+  doas vm stop my-arch
+
+  #
+  # Force to power off when needed
+  #
+  doas vm poweroff -f my-arch
+#+END_SRC
+
+
+
+** After installation setup
+
+*** Change default shell to =fish=
+
+#+BEGIN_SRC bash
+  chsh -s /usr/bin/fish
+#+END_SRC
+
+Re-login to take effect.
+
+
+*** Make boot faster
+
+By default, =grub= will wait for around =5= second before select the default boot option.
+
+But we can change it in =/etc/default/grub=.
+
+=doas nvim /etc/default/grub= to change some settings to reduce the timeout
+
+#+BEGIN_SRC bash
+  GRUB_TIMEOUT=0
+  GRUB_TIMEOUT_STYLE=hidden
+#+END_SRC
+
+Save and exit. 
+
+Then run the following command to re-generate the grub configuration file:
+
+#+BEGIN_SRC bash
+  doas grub-mkconfig -o /boot/grub/grub.cfg
+#+END_SRC
+
+Now, reboot to take effect.
+
+
+*** 
