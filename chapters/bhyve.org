@@ -76,39 +76,60 @@ For example:
 So, you can use ~tmux attach-session -t fbsd~ and do a quick switch between different tmux sessions.
 
 
-** Create virtual switch and attach your NIC to it
+** Create different types of virtual switches based on your need
 
 The =vm= utility automatically creates a =bridge= device for each =virtual switch=. When a guset is started, a virtual ethernet (=tap=) device is created, and it will be automatically added as a member of the specified =virtual switch=.
 
+*** Create public bridge virtual switch
 
-*** Create a standard type virtual switch
+If you want all VMs attached to your current (FreeBSD Bhyve Host) network just like another computer on your LAN, then you should create a VM switch in this way.
+
+For example, your local LAN network is =192.168.1.0/24=, the network topology would like this:
+
+----------------------------------------------------
+                192.168.1.0/24
+----------------------------------------------------
+        |             |        |        |
+        |             |        |        |
+        |             |        |        |
+  /------------\   /-----\  /-----\  /-------\
+  |  FreeBSD   |   | VM1 |  | VM2 |  | VM... |
+  | Bhyve host |   |     |  |     |  |       |
+  \------------/   \-----/  \-----/  \-------/
+
+
+Pros:
+    - All VMs can access the internet via your host NIC without extra configuration.
+
+Crons:
+    - Your =PF= can't protect all VMs, they have to setup their firewalls.
+
+
+**** Create a standard type virtual switch
 
 You're able to bind the virtual switch to multiple NICs.
 
 - =-t=: Specify virtual switch type, =standard= is the default value if you don't provided.
 - =-i=: Attach a physical NIC. You can't use =i= more than once!!!
-- =-a=: Specify an IP adress that is assigned to the bridge interface.
 - =-p=: Enable private mode, guests can't access each other, even they're conntected the same virtual switch!!!
-- =internal=: The name of virtual switch, maximum length of a switch name is also limited to 12 characters.
+- =public=: The name of virtual switch, maximum length of a switch name is also limited to 12 characters.
 
 #+BEGIN_SRC bash
   doas vm switch create \
       -t standard \
       -i igc0 \
-      -a 192.168.2.1/24 \
-      internal
+      public
 #+END_SRC
 
 
 Plz DO NOT attach more than one physical interface to the virtual switch, otherwise, it caused internet access issue!!!
 
-**** Alternative way to create
+***** Alternative way to create
 
 You can separate the above command to the following commands for doing the same thing:
 
 #+BEGIN_SRC bash
-  doas vm switch create internal
-  doas vm switch address internal 192.168.2.1/24
+  doas vm switch create public
   doas vm switch add internal igc0
   # doas vm switch add internal wlan0
 
@@ -122,64 +143,70 @@ You can separate the above command to the following commands for doing the same 
 Also, that's how you can modify the created virtual switch settings as well.
 
 
-*** List and info
+**** List and info
 
 #+BEGIN_SRC bash
   doas vm switch list
-  # NAME      TYPE      IFACE        ADDRESS         PRIVATE  MTU  VLAN  PORTS
-  # internal  standard  vm-internal  192.168.2.1/24  no       -    -     igc0 wlan0
+  # NAME    TYPE      IFACE      ADDRESS  PRIVATE  MTU  VLAN  PORTS
+  # public  standard  vm-public  -        no       -    -     igc0
 
   doas vm switch info internal
   # ------------------------
-  # Virtual Switch: internal
+  # Virtual Switch: public
   # ------------------------
   #   type: standard
-  #   ident: vm-internal
+  #   ident: vm-public
   #   vlan: -
-  #   physical-ports: igc0 wlan0
-  #   bytes-in: 350864 (342.640K)
-  #   bytes-out: 298315 (291.323K) 
+  #   physical-ports: igc0
+  #   bytes-in: 3436 (3.355K)
+  #   bytes-out: 1912 (1.867K)
 #+END_SRC
 
 
-*** What actual change on the host
+**** What actual change on the host
 
 When you created a virtual switch, you can see =ifconfig= list a new bridge NIC like this:
 
 The new NIC's name will be =vm-YOUR_VIRTUAL_SWITCH_NAME=
 
 #+BEGIN_SRC bash
-vm-internal: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
-        options=0
-        ether 26:d5:e0:84:0b:5e
-        inet 192.168.2.1 netmask 0xffffff00 broadcast 192.168.2.255
-        id 00:00:00:00:00:00 priority 32768 hellotime 2 fwddelay 15
-        maxage 20 holdcnt 6 proto rstp maxaddr 2000 timeout 1200
-        root id 00:00:00:00:00:00 priority 32768 ifcost 0 port 0
-        member: igc0 flags=143<LEARNING,DISCOVER,AUTOEDGE,AUTOPTP>
-                ifmaxaddr 0 port 1 priority 128 path cost 20000
-        groups: bridge vm-switch viid-d1efa@
-        nd6 options=9<PERFORMNUD,IFDISABLED>
+  vm-public: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+          options=0
+          ether be:b3:69:de:eb:ef
+          id 00:00:00:00:00:00 priority 32768 hellotime 2 fwddelay 15
+          maxage 20 holdcnt 6 proto rstp maxaddr 2000 timeout 1200
+          root id 00:00:00:00:00:00 priority 32768 ifcost 0 port 0
+          member: igc0 flags=143<LEARNING,DISCOVER,AUTOEDGE,AUTOPTP>
+                  ifmaxaddr 0 port 1 priority 128 path cost 20000
+          groups: bridge vm-switch viid-4c918@
+          nd6 options=9<PERFORMNUD,IFDISABLED>
 #+END_SRC
 
+Pay attention to the group attributes: =groups: bridge vm-switch viid-4c918@=, it helps you to manage your =PF= rules related to that =vm-public= i
 
-Also, new rules are added to routing table:
+
+**** How to switch physical interface for the given virtual switch
+
+For example, my =TH80= both connect =wlan0= for WIFI and =igc0= Ethernet (as the default gateway), but I attach =igc0= when creating =public= virtual switch.
+
+So, when I unplug the ethernet cable and reboot, =FreeBSD= will switch the default gateway to =wlan0= automatically. But the =public= virtaul switch won't be able to access internet, as it binds to =igc0= when created!!
+
+So, I have to do the following between switching physical NICs:
 
 #+BEGIN_SRC bash
-  netstat  -rn4
+  #
+  # If I use Ethernet
+  #
+  doas vm switch remove public wlan0
+  doas vm switch add public igc0
 
-  # Routing tables
-  # 
-  # Internet:
-  # Destination        Gateway            Flags     Netif Expire
-  # default            192.168.1.200      UGS        igc0
-  # 127.0.0.1          link#2             UH          lo0
-  # 192.168.1.0/24     link#3             U         wlan0
-  # 192.168.1.160      link#2             UHS         lo0
-  # 192.168.1.190      link#2             UHS         lo0
-  192.168.2.0/24     link#5             U      vm-inter
-  192.168.2.1        link#2             UHS         lo0 
+  #
+  # If I use WIFI
+  #
+  doas vm switch remove public igc0
+  doas vm switch add public wlan0
 #+END_SRC
+
 
 
 *** Virtual switch configuration file
@@ -194,28 +221,6 @@ Also, new rules are added to routing table:
   # addr_internal="192.168.2.1/24" 
 #+END_SRC
 
-
-*** How to switch physical interface for the given virtual switch
-
-For example, my =TH80= both connect =wlan0= for WIFI and =igc0= Ethernet (as the default gateway), but I attach =igc0= when creating =internal= virtual switch.
-
-So, when I unplug the ethernet cable and reboot, =FreeBSD= will switch the default gateway to =wlan0= automatically. But the =internal= virtaul switch won't be able to access internet, as it binds to =igc0= when created!!
-
-So, I have to do the following between switching physical NICs:
-
-#+BEGIN_SRC bash
-  #
-  # If I use Ethernet
-  #
-  doas vm switch remove internal wlan0
-  doas vm switch add internal igc0
-
-  #
-  # If I use WIFI
-  #
-  doas vm switch remove internal igc0
-  doas vm switch add internal wlan0
-#+END_SRC
 
 
 ** NAT feature on virtual switch
@@ -335,7 +340,7 @@ If you want to re-create a VM, you can run ~doas vm destroy my-arch~ to delete i
 
 ** Launch the guest installation process
 
-First, you need a VNC client to connecto the guest VNC server, let's install it:
+First, you need a VNC client to connecto the guest VNC server if you enable ~graphics="yes"~ in the VM guest configuration:
 
 #+BEGIN_SRC bash
   #

@@ -40,7 +40,7 @@
 *** [[file:chapters/google_cloud_sdk.org][Google cloud SDK]]
 *** [[file:chapters/lf.org][Lf]]
 *** [[file:chapters/bhyve.org][Bhyve virtualization]]
-**** Install Arch linux guest
+**** [[file:chapters/install-arch-linux-guest.org][Install Arch linux guest]]
 **** Install OpenBSD guest
 ** [[file:chapters/ports.org][Ports collection]]
 ** Gaming

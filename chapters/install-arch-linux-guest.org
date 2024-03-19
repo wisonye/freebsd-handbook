@@ -49,10 +49,12 @@ Place the following settings into  ~$vm_dir/.template/arch_linux.conf~:
   disk0_size="30G"
 
   #
-  # Virtual network and switch
+  # Virtual network and switch, plz make sure pick the correct
+  # virtual switch for different purposes.
   #
   network0_type="virtio-net"
-  network0_switch="internal"
+  network0_switch="public"
+  # network0_switch="internal"
 
   #
   # graphics
@@ -132,9 +134,9 @@ Place the following settings into  ~$vm_dir/.template/arch_linux.conf~:
   xhci_mouse="yes"
 #+END_SRC
 
-I set ~graphics="off"~ that's because I don't need to install =X= or another =WM= for my arch, if you that, you have to set it to ~graphics="yes"~ !i!!
-I set ~graphics="off"~ that's because I don't need to install =X= or another =WM= for my arch, if you that, you have to set it to ~graphics="yes"~ !i!!
-I set ~graphics="off"~ that's because I don't need to install =X= or another =WM= for my arch, if you that, you have to set it to ~graphics="yes"~ !i!!
+I set ~graphics="off"~ that's because I don't need to install =X= or another =WM= for my arch, if you that, you have to set it to ~graphics="yes"~ !!!
+I set ~graphics="off"~ that's because I don't need to install =X= or another =WM= for my arch, if you that, you have to set it to ~graphics="yes"~ !!!
+I set ~graphics="off"~ that's because I don't need to install =X= or another =WM= for my arch, if you that, you have to set it to ~graphics="yes"~ !!!
 
 One important thing is that:
 
@@ -209,7 +211,7 @@ Also, you can list the vm info like this:
   #   network-interface
   #     number: 0
   #     emulation: virtio-net
-  #     virtual-switch: internal
+  #     virtual-switch: public
   #     fixed-mac-address: 58:9c:fc:02:33:f4
   #     fixed-device: -
   # 
@@ -225,6 +227,20 @@ Also, you can list the vm info like this:
 
 
 If you want to re-create a VM, you can run ~doas vm destroy my-arch~ to delete it and re-create again.
+
+
+** How to modify vm configuration
+
+#+BEGIN_SRC bash
+  doas vm configure my-arch
+#+END_SRC
+
+
+** How to delete/destroy VM
+
+#+BEGIN_SRC bash
+  doas vm destroy my-arch 
+#+END_SRC
 
 
 ** Launch the guest installation process
@@ -358,7 +374,7 @@ Confirm it has been mounted correctly:
 *** Install necessary packages and create =fstab=
 
 #+BEGIN_SRC bash
-  pacstrap -K /mnt base linux linux-lts linux-firmware man openssh git git-delta base-devel neovim python-pynvim procs bat ripgrep lf fish
+  pacstrap -K /mnt base linux linux-lts linux-firmware man openssh git git-delta base-devel neovim python-pynvim procs bat ripgrep lf fish btop emacs-nativecomp
 
   genfstab -U /mnt >> /mnt/etc/fstab
 #+END_SRC
@@ -536,7 +552,35 @@ Make sure to change the file permission:
 #+END_SRC
 
 
-**** Static ip configuration
+**** Network configuration
+
+***** DHCP
+
+The =enp0s5= here just a NIC example, you can run =ip add= to get it, make sure to change your correct NIC!!!
+
+Create =/etc/systemd/network/20-wired.network= with the following settings:
+
+#+BEGIN_SRC bash
+  [Match]
+  Name=enp0s5
+
+  [Network]
+  DHCP=yes
+#+END_SRC
+
+
+Enable and restart the related services:
+
+#+BEGIN_SRC bash
+  systemctl enable systemd-networkd
+  systemctl restart systemd-networkd
+
+  systemctl enable systemd-resolved.service
+  systemctl restart systemd-resolved.service
+#+END_SRC
+
+
+***** Static ip configuration
 
 The =enp0s5= here just a NIC example, you can run =ip add= to get it, make sure to change your correct NIC!!!
 
