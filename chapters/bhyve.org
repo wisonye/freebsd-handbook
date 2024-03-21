@@ -249,8 +249,6 @@ Crons:
 
 **** Create a standard type virtual switch
 
-You're able to bind the virtual switch to multiple NICs.
-
 - =-t=: Specify virtual switch type, =standard= is the default value if you don't provided.
 - =-a=: Specify an IP adress that is assigned to the bridge interface.
 - =-p=: Enable private mode, guests can't access each other, even they're conntected the same virtual switch!!!
@@ -264,7 +262,7 @@ You're able to bind the virtual switch to multiple NICs.
 #+END_SRC
 
 
-Plz DO NOT attach a physical interface to the virtual switch, that makes all network packets go through the virtual switch NIC, then you can use =PF= rules to control everything:)
+Plz DO NOT attach a physical interface to the virtual switch, so all network packets go through the virtual switch NIC, then you can use =PF= rules to control everything:)
 
 ***** Alternative way to create
 
@@ -410,11 +408,6 @@ That's why the following macros give you back the following values:
 
 ***** NAT (Network Address Translation)
 
-#+BEGIN_SRC bash
-  
-#+END_SRC
-
-
 #+BEGIN_SRC fish
   # ==============================================================================
   # NAT for VM
@@ -427,6 +420,15 @@ That's why the following macros give you back the following values:
 
 
 ***** VM pass rules
+
+Usually, your PF settings should already have the pass rules for the external NIC (=nic_eth= in this example) that connects to your router to reach the internet. So, the following pass rules only on the virtual network part!!!
+
+Also, keep that in mind, a network packet go through the following path (or steps) before going out to your default gateway via =nic_eth= (in this example):
+
+VM NIC (=192.168.2.10=) --> Virtual Switch NIC (=192.168.2.1=) --> Gateway NIC (=nic_eth=) --> NAT (tranlsate =192.168.2.0/24= to your =nic_eth= network) --> Router
+
+As you've already had your pass rules on =nic_eth=, that's why you don't need to care about that part anymore, you only focus on =VM NIC --> Virtual Switch NIC (before NAT)= rules!!!
+
 
 #+BEGIN_SRC fish
   # ==============================================================================
