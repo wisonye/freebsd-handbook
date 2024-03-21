@@ -53,8 +53,8 @@ Place the following settings into  ~$vm_dir/.template/arch_linux.conf~:
   # virtual switch for different purposes.
   #
   network0_type="virtio-net"
-  network0_switch="public"
-  # network0_switch="internal"
+  # network0_switch="public"
+  network0_switch="internal"
 
   #
   # graphics
@@ -160,7 +160,7 @@ If you plan to run more than on guest at the same time with graphic is on, then 
   #
   doas vm list
   # NAME     DATASTORE  LOADER  CPU  MEMORY  VNC  AUTO  STATE
-  # my-arch  default    uefi    16   16G     -    No    Stopped
+  # my-arch  default    grub    16   16G     -    No    Stopped
 
   #
   # Here is where the VM located
@@ -177,11 +177,11 @@ If you plan to run more than on guest at the same time with graphic is on, then 
 #+BEGIN_SRC bash
   bat ~/vm/my-arch/my-arch.conf
 
-  # loader="uefi"
+  # loader="grub"
   # cpu=16
   # memory=16G
   # network0_type="virtio-net"
-  # network0_switch="public"
+  # network0_switch="internal"
   # disk0_type="virtio-blk"
   # disk0_name="disk0.img"
   # graphics="yes"
@@ -211,7 +211,7 @@ Also, you can list the vm info like this:
   #   network-interface
   #     number: 0
   #     emulation: virtio-net
-  #     virtual-switch: public
+  #     virtual-switch: internal
   #     fixed-mac-address: 58:9c:fc:02:33:f4
   #     fixed-device: -
   # 

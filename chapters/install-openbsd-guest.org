@@ -1,0 +1,563 @@
+* Install OpenBSD Guest
+
+** Create guest configuration 
+
+All available settings are in =/usr/local/share/examples/vm-bhyve/config.sample=. You better to modify on top of the existing pre-configed template!!!
+
+You should copy one of them, modify it and save to =$vm_dir/.template=.
+
+Place the following settings into  ~$vm_dir/.template/arch_linux.conf~:
+
+#+BEGIN_SRC bash
+  #
+  # loader
+  # Specify the loader to use for the guest. This can either be
+  # one of the original bhyve loaders (bhyveload/grub), or
+  # you can specify to use uefi firmware to load the guest
+  #
+  # Valid Options: bhyveload,grub,uefi,uefi-csm
+  #
+  loader="uefi"
+
+  #
+  # You can run `sysctl hw.ncpu | cut -d: -f2` to get the total CPU cores
+  #
+  cpu="16"
+  memory="16G"
+
+  #
+  # Virtual disk, make sure to change the size to what you want
+  #
+  disk0_type="nvme"
+  disk0_name="disk0.img"
+  disk0_size="30G"
+
+  #
+  # Virtual network and switch, plz make sure pick the correct
+  # virtual switch for different purposes.
+  #
+  network0_type="virtio-net"
+  # network0_switch="public"
+  network0_switch="internal"
+
+  bhyve_options="-w"
+
+  #
+  # graphics
+  #
+  # Set to a value other than [empty]/off/false/no/0 to enable
+  # the bhyve frame buffer device. This creates a graphics console
+  # in the guest, which is accessible using vnc
+  #
+  # By default this is set at 800x600, and we find an available vnc
+  # port starting at 5900. The port can be seen in vm list|info output.
+  #
+  graphics="no"
+
+  #
+  #
+  # graphics_port
+  #
+  # Use this option to specify a fixed network port that the vnc service
+  # should listen on. If specifying port numbers manually, please make
+  # sure all guests have a unique port.
+  #
+  graphics_port="6000"
+
+
+  #
+  # graphics_listen
+  #
+  # By default, the vnc service will listen on 0.0.0.0, so you can connect by
+  # using any IP address assigned to the bhyve host. Use this option if you
+  # want to specify a specific IP address that the service should bind to
+  #
+  # Default: 0.0.0.0
+  #
+  # graphics_listen="10.0.0.1"
+
+  #
+  # graphics_res
+  #
+  # This allows you to specify a resolution for the graphical console.
+  # Pleas note only the below options are supported
+  #
+  # Default: 800x600
+  # Valid Options: 1920x1200,1920x1080,1600x1200,1600x900,1280x1024,1280x720,1024x768,800x600,640x480
+  #
+  graphics_res="1600x1200"
+
+  #
+  # graphics_wait
+  #
+  # Set to yes in order to make guest boot wait for the VNC console
+  # to be opened. This can help when installing operating systems
+  # that require immediate keyboard input (such as a timed 'enter setup'
+  # screen). The default setting of auto will add the wait option
+  # if the guest is run in install mode. Note that in auto mode
+  # the wait option will only be present on the first boot. If you
+  # need the guest to wait on every boot during install, the yes
+  # option should be used.
+  #
+  # Valid Options: no,yes,auto
+  #
+  graphics_wait="no"
+
+
+  #
+  # graphics_vga
+  #
+  # valid options for this are on/off/io. io is the default
+  # please see the bhyve man page for details on this option
+  #
+  # graphics_vga="io"
+
+  #
+  # xhci_mouse
+  #
+  # When graphics are enabled, a PS2 mouse is created by default. This
+  # doesn't track very well, and can be replaced with an XHCI mouse
+  # by setting this option to yes. Please note only some guests support
+  # this mouse
+  #
+  xhci_mouse="yes"
+#+END_SRC
+
+I set ~graphics="off"~ that's because I don't need to install =X= or another =WM= for my arch, if you that, you have to set it to ~graphics="yes"~ !i!!
+I set ~graphics="off"~ that's because I don't need to install =X= or another =WM= for my arch, if you that, you have to set it to ~graphics="yes"~ !i!!
+I set ~graphics="off"~ that's because I don't need to install =X= or another =WM= for my arch, if you that, you have to set it to ~graphics="yes"~ !i!!
+
+One important thing is that:
+
+If you plan to run more than on guest at the same time with graphic is on, then you better to make sure every guest uses a different =graphics_port= for VNC to connect!!!
+
+
+** Create guest VM
+
+=-t arch_linux=: Use =$vm_dir/.template/openbsd.conf= as template to create VM
+=-s 20GB=: Init 20GB virtual disk, override the =disk0.size= in config file
+=my-openbsd=: VM name
+
+#+BEGIN_SRC bash
+  #
+  # Create VM, just created, not start the vm at all!!!
+  #
+  doas vm create -t openbsd my-openbsd
+
+  #
+  # Copy or move the downloaded `installXX.img` to `$vm_dir/.iso`
+  #
+  doas mv ~/Downloads/install74.img ~/vm/.iso
+
+  #
+  # List created VM
+  #
+  doas vm list
+  # NAME        DATASTORE  LOADER  CPU  MEMORY  VNC  AUTO  STATE
+  # my-openbsd  default    uefi    16   16G     -    No    Stopped
+
+  #
+  # Here is where the VM located
+  #
+  ls -lht ~/vm/my-openbsd/
+  # -rw-r--r--  1 root  wheel  3.0K Mar 21 16:29 my-openbsd.conf
+  # -rw-------  1 root  wheel   30G Mar 21 16:29 disk0.img
+  # -rw-r--r--  1 root  wheel   95B Mar 21 16:29 vm-bhyve.log
+#+END_SRC
+
+
+=~/vm/my-openbsd/my-openbsd.conf= is a copy of the given template with the newly added =uuid= and unique NIC mac address:
+
+#+BEGIN_SRC bash
+  bat ~/vm/my-openbsd/my-openbsd.conf
+
+  # loader="uefi"
+  # cpu=16
+  # memory=16G
+  # network0_type="virtio-net"
+  # network0_switch="internal"
+  # disk0_type="nvme"
+  # disk0_name="disk0.img"
+  # graphics="no"
+  # graphics_port="6000"
+  # graphics_res="1600x1200"
+  # graphics_wait="no"
+  # xhci_mouse="yes"
+  # uuid="4cc8fbe6-e73f-11ee-8124-5847ca7014b5"
+  # network0_mac="58:9c:fc:0e:ab:61"
+#+END_SRC
+
+
+Also, you can list the vm info like this:
+
+#+BEGIN_SRC bash
+  doas vm info my-openbsd
+
+  # ------------------------
+  # Virtual Machine: my-openbsd
+  # ------------------------
+  #   state: stopped
+  #   datastore: default
+  #   loader: uefi
+  #   uuid: 4cc8fbe6-e73f-11ee-8124-5847ca7014b5
+  #   cpu: 16
+  #   memory: 16G
+  # 
+  #   network-interface
+  #     number: 0
+  #     emulation: virtio-net
+  #     virtual-switch: internal
+  #     fixed-mac-address: 58:9c:fc:0e:ab:61
+  #     fixed-device: -
+  # 
+  #   virtual-disk
+  #     number: 0
+  #     device-type: file
+  #     emulation: nvme
+  #     options: -
+  #     system-path: /home/wison/vm/my-openbsd/disk0.img
+  #     bytes-size: 32212254720 (30.000G)
+  #     bytes-used: 1024 (1.000K)
+#+END_SRC
+
+
+If you want to re-create a VM, you can run ~doas vm destroy my-openbsd~ to delete it and re-create again.
+
+
+** Launch the guest installation process
+
+Download install image file
+
+#+BEGIN_SRC bash
+  doas vm iso https://cdn.openbsd.org/pub/OpenBSD/7.4/amd64/install74.img
+#+END_SRC
+
+
+Now, let's install OpenBSD:
+
+#+BEGIN_SRC bash
+  doas vm install -f my-openbsd install74.img
+#+END_SRC
+
+
+After that, the vm should run from your current console and you will see the following prompt, but you need type =set tty com0= to redirect the =tty= to =com0=, then type =boot= to kick start the installation process:
+
+#+BEGIN_SRC bash
+  probing: pc0 com0 com1 mem[640K 3046M 1M 16M 20K 3M 13312M]
+  disk: hd0 hd1*
+  >> OpenBSD/amd64 BOOTX64 3.65
+  boot> set tty com0
+  boot> boot
+#+END_SRC
+
+
+** OpenBSD install process
+
+*** Network configuration
+
+#+BEGIN_SRC bash
+  System hostname? (short form, e.g. 'foo') my-openbsd
+
+  Available network interfaces are: vio0 vlan0.
+  Network interface to configure? (name, lladdr, '?', or 'done') [vio0]
+  IPv4 address for vio0? (or 'autoconf' or 'none') [autoconf] none
+  IPv6 address for vio0? (or 'autoconf' or 'none') [none]
+  Available network interfaces are: vio0 vlan0.
+  Network interface to configure? (name, lladdr, '?', or 'done') [done]
+
+  DNS domain name? (e.g. 'example.com') [my.domain] my-openbsd.domain
+
+  #
+  # Set to virtual switch IP
+  #
+  DNS nameservers? (IP address list or 'none') [none] 192.168.2.1
+#+END_SRC
+
+
+*** Change default console to =com0=
+
+#+BEGIN_SRC bash
+  Change the default console to com0? [yes]
+  Available speeds are: 9600 19200 38400 57600 115200.
+  Which speed should com0 use? (or 'done') [9600]
+#+END_SRC
+
+
+*** Partitioning
+
+#+BEGIN_SRC bash
+  Available disks are: sd0 sd1.
+  Which disk is the root disk? ('?' for details) [sd0] ?
+      sd0: ATA, BHYVE SATA DISK, 001  (0.6G)
+      sd1: NVMe, bhyve-NVMe, 1.0  (30.0G)
+  Available disks are: sd0 sd1.
+
+  #
+  # Super important to choose the 'sd1' instead of 'sd0'
+  #
+  Which disk is the root disk? ('?' for details) [sd0] sd1
+
+  Encrypt the root disk with a passphrase? [no]
+  No valid MBR or GPT.
+
+  #
+  # Super important to choose 'G'!!!
+  # Otherwise, it won't boot after installation!!!
+  #
+  Use (W)hole disk MBR, whole disk (G)PT or (E)dit? [whole] G
+  An EFI/GPT disk may not boot. Proceed? [no] yes
+  Setting OpenBSD GPT partition to whole sd1...done.
+  The auto-allocated layout for sd1 is:
+  #                size           offset  fstype [fsize bsize   cpg]
+    a:          1024.0M           532544  4.2BSD   2048 16384     1 # /
+    b:          2027.8M          2629696    swap
+    c:         30720.0M                0  unused
+    d:          1678.2M          6782624  4.2BSD   2048 16384     1 # /tmp
+    e:          2612.1M         10219616  4.2BSD   2048 16384     1 # /var
+    f:          3447.8M         15569248  4.2BSD   2048 16384     1 # /usr
+    g:           968.3M         22630304  4.2BSD   2048 16384     1 # /usr/X11R6
+    h:          3945.7M         24613440  4.2BSD   2048 16384     1 # /usr/local
+    i:           260.0M               64   MSDOS
+    j:          1889.5M         32694208  4.2BSD   2048 16384     1 # /usr/src
+    k:          5899.1M         36564000  4.2BSD   2048 16384     1 # /usr/obj
+    l:          6967.3M         48645376  4.2BSD   2048 16384     1 # /home
+
+  Use (A)uto layout, (E)dit auto layout, or create (C)ustom layout? [a] a
+
+  Available disks are: sd0.
+  Which disk do you wish to initialize? (or 'done') [done]
+#+END_SRC
+
+
+*** Install file sets
+
+#+BEGIN_SRC bash
+  Let's install the sets!
+  Location of sets? (disk http nfs or 'done') [http] disk
+  Is the disk partition already mounted? [no]
+  Available disks are: sd0 sd1.
+  Which disk contains the install media? (or 'done') [sd0]
+    a:          1358848             1024  4.2BSD   2048 16384 16142
+    i:              960               64   MSDOS
+  Available sd0 partitions are: a i.
+  Which sd0 partition has the install sets? (or 'done') [a]
+  Pathname to the sets? (or 'done') [7.4/amd64]
+
+  Select sets by entering a set name, a file name pattern or 'all'. De-select
+  sets by prepending a '-', e.g.: '-game*'. Selected sets are labelled '[X]'.
+      [X] bsd           [X] base74.tgz    [X] game74.tgz    [X] xfont74.tgz
+      [X] bsd.mp        [X] comp74.tgz    [X] xbase74.tgz   [X] xserv74.tgz
+      [X] bsd.rd        [X] man74.tgz     [X] xshare74.tgz
+#+END_SRC
+
+And here is the description for each file set:
+
+#+BEGIN_SRC fish
+  bsd	        The kernel (required)
+  bsd.mp	        The multi-processor kernel (only on some platforms)
+  bsd.rd	        The ramdisk kernel
+  base74.tgz	The base system (required)
+  comp74.tgz	The compiler collection, headers and libraries
+  man74.tgz	Manual pages
+  game74.tgz	Text-based games
+  xbase74.tgz	Base libraries and utilities for X11 (requires xshare74.tgz)
+  xfont74.tgz	Fonts used by X11
+  xserv74.tgz	X11's X servers
+  xshare74.tgz	X11's man pages, locale settings and includes
+#+END_SRC
+
+If you don't need =X=, then de-selection the following file sets:
+
+#+BEGIN_SRC bash
+Set name(s)? (or 'abort' or 'done') [done] -game*
+    [X] bsd           [X] base74.tgz    [ ] game74.tgz    [X] xfont74.tgz
+    [X] bsd.mp        [X] comp74.tgz    [X] xbase74.tgz   [X] xserv74.tgz
+    [X] bsd.rd        [X] man74.tgz     [X] xshare74.tgz
+Set name(s)? (or 'abort' or 'done') [done] -x*
+    [X] bsd           [X] base74.tgz    [ ] game74.tgz    [ ] xfont74.tgz
+    [X] bsd.mp        [X] comp74.tgz    [ ] xbase74.tgz   [ ] xserv74.tgz
+    [X] bsd.rd        [X] man74.tgz     [ ] xshare74.tgz
+Set name(s)? (or 'abort' or 'done') [done]
+#+END_SRC
+
+
+Then, continue
+
+#+BEGIN_SRC bash
+  Directory does not contain SHA256.sig. Continue without verification? [no] yes
+  Installing bsd          100% |**************************| 24750 KB    00:00
+  Installing bsd.mp       100% |**************************| 24845 KB    00:00
+  Installing bsd.rd       100% |**************************|  4550 KB    00:00
+  Installing base74.tgz   100% |**************************|   368 MB    00:06
+  Extracting etc.tgz      100% |**************************|   257 KB    00:00
+  Installing comp74.tgz   100% |**************************| 75644 KB    00:02
+  Installing man74.tgz    100% |**************************|  7831 KB    00:00
+  Location of sets? (disk http nfs or 'done') [done]
+#+END_SRC
+
+
+*** Timezone
+
+#+BEGIN_SRC bash
+  What timezone are you in? ('?' for list) [Canada/Mountain] Pacific/Auckland
+#+END_SRC
+
+
+*** Shutdown the VM
+
+#+BEGIN_SRC bash
+  CONGRATULATIONS! Your OpenBSD install has been successfully completed!
+
+  When you login to your new system the first time, please read your mail
+  using the 'mail' command.
+
+  Exit to (S)hell, (H)alt or (R)eboot? [reboot] h
+#+END_SRC
+
+
+And you have poweroff the VM manually, otherwise, reboot will kick start the installation process again!!!
+
+#+BEGIN_SRC bash
+  doas vm poweroff my-openbsd
+  Are you sure you want to forcefully poweroff this virtual machine (y/n)? y
+#+END_SRC
+
+
+
+** Start VM in different way
+
+If you're currently inside a tmux session, then you HAVE TO detech or open a new terminal before running the following command, as it will start a new tmux and attach into it immediately.
+
+You got a few ways to start the VM:
+
+*** VM console Under current terminal tab
+
+If you want the vm console connect to current terminal tab (in foreground) directly, you should use this way:
+
+#+BEGIN_SRC bash
+  #
+  # `-f`: Guest will be started in the foreground on stdio. 
+  #
+  doas vm start -f my-openbsd
+#+END_SRC
+
+
+*** Start and connect VM console manually
+
+If you don't want to connect the vm console immediate, or you don't need the vm console at all (as you might ssh into it later), then you should use this way:
+
+#+BEGIN_SRC bash
+  #
+  # Start the VM in background
+  #
+  doas vm start my-openbsd
+
+  #
+  # Connect to its console when needed
+  #
+  doas vm console my-openbsd
+#+END_SRC
+
+
+** Stop and poweroff the VM
+
+#+BEGIN_SRC bash
+  doas vm stop my-openbsd
+
+  #
+  # Force to power off when needed
+  #
+  doas vm poweroff -f my-openbsd
+#+END_SRC
+
+
+
+** After installation setup
+
+*** Change default shell to =fish=
+
+#+BEGIN_SRC bash
+  chsh -s /usr/bin/fish
+#+END_SRC
+
+Re-login to take effect.
+
+
+*** Make boot faster
+
+By default, =grub= will wait for around =5= second before select the default boot option.
+
+But we can change it in =/etc/default/grub=.
+
+=doas nvim /etc/default/grub= to change some settings to reduce the timeout
+
+#+BEGIN_SRC bash
+  GRUB_TIMEOUT=0
+  GRUB_TIMEOUT_STYLE=hidden
+#+END_SRC
+
+Save and exit. 
+
+Then run the following command to re-generate the grub configuration file:
+
+#+BEGIN_SRC bash
+  doas grub-mkconfig -o /boot/grub/grub.cfg
+#+END_SRC
+
+Now, reboot to take effect.
+
+
+*** Create and copy GIT SSH key
+
+#+BEGIN_SRC bash
+  ssh-keygen -t ed25519 -C "YOUR_EMAIL_HERE"
+
+  # If you're using `Fish` shell, then better change to `bash` before you run
+  # this command:
+  #
+  # bash
+  eval "$(ssh-agent -s)"
+  ssh-add ~/.ssh/id_ed25519
+
+  #
+  # Then ssh into this machine, cat the pub key and create SSH key on Github settings
+  #
+  # xclip -selection clipboard < ~/.ssh/id_ed25519.pub
+#+END_SRC
+
+
+*** Setup git
+
+#+BEGIN_SRC bash
+  git config --global user.name "YOUR_PREFFERED_USER_NAME_HERE"
+  git config --global user.email "YOUR_EMAIL_HERE"
+
+  git config --global pull.rebase false
+  git config --global core.pager delta
+  git config --global interactive.diffFilter "delta --color-only"
+  git config --global delta.navigate true
+  git config --global delta.light false
+  git config --global delta.line-numbers true
+  git config --global delta.side-by-side true
+  git config --global delta.show-syntax-themes true
+  git config --global merge.conflictstyle diff3
+  git config --global diff.colorMoved default
+#+END_SRC
+
+
+*** Install =Rust= when needed
+
+#+BEGIN_SRC bash
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+  rustup component add rust-analyzer
+#+END_SRC
+
+Then relogin to take effects.
+
+
+*** Install =llvm= and =clang=
+
+#+BEGIN_SRC bash
+  doas pacman --sync --refresh base-devel clang llvm 
+#+END_SRC
