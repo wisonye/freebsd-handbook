@@ -209,6 +209,264 @@ So, I have to do the following between switching physical NICs:
 
 
 
+*** Create internal virtual switch
+
+If you want all VMs attached to your current (FreeBSD Bhyve Host) network just like another computer on your LAN, then you should create a VM switch in this way.
+
+For example, your local LAN network is =192.168.1.0/24=, the network topology would like this:
+
+----------------------------------------------------
+                192.168.1.0/24
+----------------------------------------------------
+                         |          
+                   /------------\      
+                   |  FreeBSD   |      
+                   | Bhyve host |
+                   \------------/      
+                         |          
+                    /----------\    NAT
+                    | Internal | ------------------
+                    |  Switch  |   192.168.2.0/24 
+                    \----------/ ------------------
+                         |
+                /-----------------\
+                |        |        |
+                |        |        |
+                |        |        |
+             /-----\  /-----\  /-------\
+             | VM1 |  | VM2 |  | VM... |
+             |     |  |     |  |       |
+             \-----/  \-----/  \-------/
+
+
+Pros:
+    - Protect all VMs behind the isolated network
+    - Detailed control network traffic between VMs and the outside world
+
+Crons:
+    - Your =PF= rules become more complicated
+
+
+**** Create a standard type virtual switch
+
+You're able to bind the virtual switch to multiple NICs.
+
+- =-t=: Specify virtual switch type, =standard= is the default value if you don't provided.
+- =-a=: Specify an IP adress that is assigned to the bridge interface.
+- =-p=: Enable private mode, guests can't access each other, even they're conntected the same virtual switch!!!
+- =internal=: The name of virtual switch, maximum length of a switch name is also limited to 12 characters.
+
+#+BEGIN_SRC bash
+  doas vm switch create \
+      -t standard \
+      -a 192.168.2.1/24 \
+      internal
+#+END_SRC
+
+
+Plz DO NOT attach a physical interface to the virtual switch, that makes all network packets go through the virtual switch NIC, then you can use =PF= rules to control everything:)
+
+***** Alternative way to create
+
+You can separate the above command to the following commands for doing the same thing:
+
+#+BEGIN_SRC bash
+  doas vm switch create internal
+  doas vm switch address internal 192.168.2.1/24
+
+  #
+  # Turn on/off the private mode on a switch
+  #
+  doas vm switch private internal on
+  doas vm switch private internal off
+#+END_SRC
+
+Also, that's how you can modify the created virtual switch settings as well.
+
+
+**** List and info
+
+#+BEGIN_SRC bash
+  doas vm switch list
+  # NAME      TYPE      IFACE        ADDRESS         PRIVATE  MTU  VLAN  PORTS
+  # internal  standard  vm-internal  192.168.2.1/24  no       -    -     -
+
+  doas vm switch info internal
+  # ------------------------
+  # Virtual Switch: internal
+  # ------------------------
+  #   type: standard
+  #   ident: vm-internal
+  #   vlan: -
+  #   physical-ports: -
+  #   bytes-in: 0 (0.000B)
+  #   bytes-out: 0 (0.000B)
+#+END_SRC
+
+
+**** What actual change on the host
+
+When you created a virtual switch, you can see =ifconfig= list a new bridge NIC like this:
+
+The new NIC's name will be =vm-YOUR_VIRTUAL_SWITCH_NAME=
+
+#+BEGIN_SRC bash
+  vm-internal: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+          options=0
+          ether 2e:48:ac:4d:0e:a3
+          inet 192.168.2.1 netmask 0xffffff00 broadcast 192.168.2.255
+          id 00:00:00:00:00:00 priority 32768 hellotime 2 fwddelay 15
+          maxage 20 holdcnt 6 proto rstp maxaddr 2000 timeout 1200
+          root id 00:00:00:00:00:00 priority 32768 ifcost 0 port 0
+          groups: bridge vm-switch viid-d1efa@
+          nd6 options=9<PERFORMNUD,IFDISABLED>
+#+END_SRC
+
+
+Also, new rules are added to routing table:
+
+#+BEGIN_SRC bash
+  netstat  -rn4
+
+  # Routing tables
+  # 
+  # Internet:
+  # Destination        Gateway            Flags     Netif Expire
+  # default            192.168.1.200      UGS        igc0
+  # 127.0.0.1          link#2             UH          lo0
+  # 192.168.1.0/24     link#1             U          igc0
+  # 192.168.1.160      link#2             UHS         lo0
+  192.168.2.0/24     link#5             U      vm-inter
+  192.168.2.1        link#2             UHS         lo0
+#+END_SRC
+
+
+**** Enable IP forwarding
+
+You have to enable IP forwarding on the host to make NAT works!!!
+
+Add the following settings to =/etc/rc.conf=:
+
+#+BEGIN_SRC bash
+  gateway_enable="yes" 
+#+END_SRC
+
+
+Reboot and then print the system setting to confirm:
+
+#+BEGIN_SRC bash
+  sysctl net.inet.ip | rg forward
+
+  # net.inet.ip.forwarding: 1
+#+END_SRC
+
+That menas IP forwarding works.
+
+
+**** =PF= settings
+
+Suppose that your =PF= applies a block all policy, which means you only care about the pass rules.
+
+In the following examples, they use these =PF= macros, feel free to change them to match yours:
+
+#+BEGIN_SRC fish
+  # ==============================================================================
+  #
+  # Macros
+  #
+  # - `nic_eth`: Default ethernet NIC
+  # - `nic_wlan`: Default wireless NIC
+  # - `nic_group `: The specified group name that applied to your NICs. You need
+  #                 to add the `group pfnic` parameter to `ifconfig_xxx` inside
+  #                 `/etc/rc.conf`.
+  # - `$nic_group:network`: Get back the NIC assigned network, e.g. 192.168.1.0/24
+  # - `($nic_eth)` or `($nic_wlan)`: Get back the exact NIC assigned IP
+  #
+  # ==============================================================================
+  nic_eth = "igc0"
+  nic_wlan = "wlan0"
+  nic_group = "pfnic"
+  nic_vm_switch = "vm-internal"
+  nic_vm_group = "vm-switch"
+  trust_vm_node = "{192.168.2.10, 192.168.2.20}"
+#+END_SRC
+
+
+Plz keep that in mind, all network packets between the host and VMs are through by the =internal= virtual switch (=192.168.2.1=).
+
+#+BEGIN_SRC fish
+  vm-internal: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+         ether ea:36:15:e6:c3:02
+         inet 192.168.2.1 netmask 0xffffff00 broadcast 192.168.2.255
+         groups: bridge vm-switch viid-d1efa@
+#+END_SRC
+
+That's why the following macros give you back the following values:
+
+- =nic_vm_switch=: Get back the =vm-internal= NIC.
+- =nic_vm_group=: Get back the =vm-internal= NIC by the group name
+- =nic_vm_switch:network=: Get back the virtual switch assigned network: =192.168.2.0/24=
+ 
+
+***** NAT (Network Address Translation)
+
+#+BEGIN_SRC bash
+  
+#+END_SRC
+
+
+#+BEGIN_SRC fish
+  # ==============================================================================
+  # NAT for VM
+  #
+  # Since translation occurs before filtering the filter engine will see packets
+  # as they look after any addresses and ports have been translated.
+  # ==============================================================================
+  nat on $nic_eth from $nic_vm_switch:network to any -> ($nic_eth)
+#+END_SRC
+
+
+***** VM pass rules
+
+#+BEGIN_SRC fish
+  # ==============================================================================
+  #
+  # All VM related
+  #
+  # ==============================================================================
+
+  #
+  # Ping outside
+  #
+  pass in quick on $nic_vm_group proto icmp from $nic_vm_switch:network to any icmp-type echoreq
+
+  #
+  # This make VM DNS and NTP works!!!
+  #
+  pass in quick on $nic_vm_group proto udp from $nic_vm_switch:network to any port {domain,ntp,mdns,ssdp,bootpc}
+
+  #
+  # Allow dialy app to use: all outgoing TCP and related reply
+  #
+  pass in quick on $nic_vm_group proto tcp from $nic_vm_switch:network to any
+
+  #
+  # Youtube needed
+  # https       443/udp
+  # ssdp        1900/udp   #Selective Service Discovery Protocol (UPnP)
+  #
+  pass in quick on $nic_vm_group proto udp from $nic_vm_switch:network to any port {https,ssdp}
+
+  #
+  # Allow host to ssh to vm
+  #
+  # Packets path: Virtual switch NIC --> out ( from virtual switch IP trust VM IP )
+  #
+  pass out quick on $nic_vm_group proto tcp from ($nic_vm_switch) to $trust_vm_node port ssh
+#+END_SRC
+
+
+
 *** Virtual switch configuration file
 
 #+BEGIN_SRC bash
@@ -221,15 +479,6 @@ So, I have to do the following between switching physical NICs:
   # addr_internal="192.168.2.1/24" 
 #+END_SRC
 
-
-
-** NAT feature on virtual switch
-
-Unfortunately, internal =NAT= configuration has been removed as of =v1.2=. As a shell script, we relied on configuring external systems such as =pf= and =dnsmasq= to provide =NAT= functions. Some users want to use other tools/firewalls, and many users found =NAT= broken due to existing pf or =dnsmasq= configuration they had in place.
-
-That said, you better to manually configure =NAT= rather than to try and enable it via =vm-bhyve=, it's not that difficult than you think:)
-
-https://github.com/churchers/vm-bhyve/wiki/NAT-Configuration
 
 
 ** Download ISO
@@ -395,81 +644,3 @@ If you're currently inside a tmux session, then you HAVE TO detech or open a new
 #+END_SRC
 
 
-
-** Firewall setup
-
-If your host uses =PF=, then you have to modify =PF= rules to make the VM network work, here the newly added rules target the VM in =/etc/pf.conf=:
-
-#+BEGIN_SRC bash
-  nic_vm_switch = "vm-internal"
-  nic_vm_group = "vm-switch"
-  trust_vm_node = "{192.168.2.10, 192.168.2.20}"
-
-  # ==============================================================================
-  #
-  # Allow {DNS,NTP,Multicast DNS, SSDP} query & response (statefully by default)
-  #
-  # DNS  - Domain Name Server (53 UDP)
-  # NTP  - Network Time Protocol (123 UDP)
-  # mdsn - Multicast DNS (5353 UDP)
-  # SSDP - Selective Service Discovery Protocol (1900 UDP)
-  # BOOT/DHCP - Bootstrap Protocol (BOOTP) (legacy BOOTP functionality by DHCP)
-  #
-  # ==============================================================================
-  pass quick on $nic_vm_group proto udp from any to any port {domain,ntp,mdns,ssdp,bootpc}
-
-  # ==============================================================================
-  #
-  # - Allow out ping request and reply (statefully by default)
-  # - Allow trust node ping me
-  # - Allow trust vm node ping me
-  #
-  # - `inet`:
-  #   It's the optional `address family` value, it means `ipv4`.
-  #   `inet6` means `ipv6`.
-  #
-  # - In the `from ⟨source⟩ port ⟨source⟩ os ⟨source⟩ to ⟨dest⟩ port ⟨dest⟩` part:
-  #
-  # 	`all` - This is equivalent to `from any to any`
-  #
-  # - For knowing the `icmp-type` name and number: `man icmp`
-  #
-  # ==============================================================================
-  pass in quick on $nic_vm_group proto icmp from $trust_vm_node to {($nic_vm_switch)} icmp-type echoreq
-
-  # ==============================================================================
-  #
-  # - Allow me to ssh to vm
-  #
-  # ==============================================================================
-  pass in quick on $nic_vm_group proto tcp from {($nic_vm_switch)} to $trust_vm_node port ssh
-
-  # ==============================================================================
-  #
-  # Allow dialy app to use: all outgoing TCP and related reply
-  #
-  # ==============================================================================
-  pass out quick on $nic_vm_group proto tcp from {($nic_vm_switch)} to any
-
-  # Youtube needed
-  # https       443/udp
-  # ssdp        1900/udp   #Selective Service Discovery Protocol (UPnP)
-  pass out quick on $nic_vm_group proto udp from {($nic_vm_switch)} to any port {https,ssdp}
-
-  # ==============================================================================
-  #
-  # Last step before `block all`:
-  #
-  # Block and log all incoming and outgoing packets via default out NIC and either:
-  #
-  # - Want to go out from my ip
-  # - Want to come in to my ip
-  #
-  # The purpose for those rules is that: 
-  #
-  # I can review the pflog file to see whether I'missing any allows rules or not:)
-  #
-  # ==============================================================================
-  block in quick log(all) on $nic_vm_group from any to {($nic_vm_switch)}
-  block out quick log(all) on $nic_vm_group from {($nic_vm_switch)} to any
-#+END_SRC
