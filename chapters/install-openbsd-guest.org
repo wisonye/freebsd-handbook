@@ -474,37 +474,126 @@ If you don't want to connect the vm console immediate, or you don't need the vm 
 
 ** After installation setup
 
+*** Make boot faster
+
+Add the following settings to =/etc/boot.conf=:
+
+#+BEGIN_SRC conf
+  set timeout 1
+#+END_SRC
+
+That will change the default timeout from =5= seconds =1= seconds. Reboot to take effect.
+
+
+*** =doas= configuration
+
+You need change to =root= user and put the following settings into =/etc/doas.conf=:
+
+#+BEGIN_SRC bash
+  permit nopass keepenv setenv { PATH } wison as root
+#+END_SRC
+
+
+After that, change the file permission to =read,write= by the owner:
+
+#+BEGIN_SRC bash
+  chmod 600 /etc/doas.conf 
+#+END_SRC
+
+
+*** Network configuration
+
+Here is the official doc: [[https://www.openbsd.org/faq/faq6.html][Network Configuration]]
+
+**** Hostname
+
+Edit =/etc/myname=
+
+
+**** DNS
+
+Edit =/etc/resolv.conf=
+
+
+**** Gateway
+
+Add the following IP address to =/etc/mygate.conf= for the defualt gateway:
+
+#+BEGIN_SRC bash
+  192.168.2.1
+#+END_SRC
+
+
+**** Network interfaces
+
+Edit =/etc/hostname.[INTERFACE_NAME_HERE]=
+
+For example, my VM ethernet NIC is =vio0=, then add the following settings to =/etc/hostname.vio0=:
+
+#+BEGIN_SRC bash
+  inet 192.168.2.20 255.255.255.0 192.168.2.255
+#+END_SRC
+
+
+**** Show routing table
+
+Show IPv4 routing table:
+
+#+BEGIN_SRC bash
+  netstat -rn -f inet
+#+END_SRC
+
+
+**** Take effect immediate
+
+If you modifya any of above files, run this command to take effect immediately without reboot:
+
+#+BEGIN_SRC bash
+  doas sh /etc/netstart 
+#+END_SRC
+
+
+*** Configure PKG mirror and update
+
+You can find your nearest mirror from [[https://www.openbsd.org/ftp.html][here]], then export the =PKG_PATH= env variable to your mirror URL:
+
+#+BEGIN_SRC bash
+  #
+  # Make sure to Replace the `7.6` and `amd64` to your OpenBSD version and
+  # your CPU architecture!!!
+  #
+  export PKG_PATH=https://mirror.fsmg.org.nz/pub/OpenBSD/7.4/packages/amd64/
+#+END_SRC
+
+
+After that, run the following command to update all installed packages:
+
+#+BEGIN_SRC bash
+  #
+  # Upgrade all installed packages (some packages you have to re-install)
+  #
+  # `-U`: Update dependencies if required before installing the new package(s).
+  # `-u`: update all installed packages.
+  # `-v`: verbose mode
+  #
+  doas pkg_add -Uuv
+#+END_SRC
+
+
+*** Install everything I need
+
+#+BEGIN_SRC bash
+  doas pkg_add git delta neovim py3-neovim bat ripgrep lf fish neofetch emacs-29.1p0-no_x11 cmake
+#+END_SRC
+
+
 *** Change default shell to =fish=
 
 #+BEGIN_SRC bash
-  chsh -s /usr/bin/fish
+  chsh -s /usr/local/bin/fish
 #+END_SRC
 
 Re-login to take effect.
-
-
-*** Make boot faster
-
-By default, =grub= will wait for around =5= second before select the default boot option.
-
-But we can change it in =/etc/default/grub=.
-
-=doas nvim /etc/default/grub= to change some settings to reduce the timeout
-
-#+BEGIN_SRC bash
-  GRUB_TIMEOUT=0
-  GRUB_TIMEOUT_STYLE=hidden
-#+END_SRC
-
-Save and exit. 
-
-Then run the following command to re-generate the grub configuration file:
-
-#+BEGIN_SRC bash
-  doas grub-mkconfig -o /boot/grub/grub.cfg
-#+END_SRC
-
-Now, reboot to take effect.
 
 
 *** Create and copy GIT SSH key
@@ -556,8 +645,34 @@ Now, reboot to take effect.
 Then relogin to take effects.
 
 
-*** Install =llvm= and =clang=
+*** Install new version of =llvm=
+
+By default, OpenBSD installs the older version of =llvm=, you need to install the newer version manually:
 
 #+BEGIN_SRC bash
-  doas pacman --sync --refresh base-devel clang llvm 
+  doas pkg_add llvm
+#+END_SRC
+
+After that, you have to set the following env var to your shell environment:
+
+#+BEGIN_SRC fish
+  set --export LD_LIBRARY_PATH /usr/local/llvm16/lib
+#+END_SRC
+
+Otherwise, you will the following error when running any =llvm-16= related commands:
+
+#+BEGIN_SRC bash
+ ld.so: can't load library 'libLLVM-16.so' 
+#+END_SRC
+
+
+Now, you're using the newer version of =llvm=:
+
+#+BEGIN_SRC bash
+  clang --version
+
+  # clang version 16.0.6
+  # Target: amd64-unknown-openbsd7.4
+  # Thread model: posix
+  # InstalledDir: /usr/local/llvm16/bin
 #+END_SRC
