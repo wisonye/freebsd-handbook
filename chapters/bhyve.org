@@ -646,3 +646,30 @@ If you're currently inside a tmux session, then you HAVE TO detech or open a new
 #+END_SRC
 
 
+
+
+** Passwordless ssh into VM
+
+First, you need to generate a new RSA key like this:
+
+#+BEGIN_SRC bash
+  ssh-keygen -b 4096 -C "YOUR_EMAIL_HERE"
+#+END_SRC
+
+After that, you will see the new RSA key there:
+
+#+BEGIN_SRC bash
+  ls -lht ~/.ssh/
+
+  # -rw-r--r--  1 wison wison  743B Mar 22 14:45 id_rsa.pub
+  # -rw-------  1 wison wison  3.3K Mar 22 14:45 id_rsa
+#+END_SRC
+
+And then, you need to ssh copy =~/.ssh/id_rsa.pub= into VM's =~/.ssh/authorized_keys=:
+
+#+BEGIN_SRC bash
+  scp -rv ~/.ssh/id_rsa.pub wison@my-arch:/home/YOUR_USER_NAME_HERE/.ssh/authorized_keys
+  scp -rv ~/.ssh/id_rsa.pub wison@my-openbsd:/home/YOUR_USER_NAME_HERE/.ssh/authorized_keys
+#+END_SRC
+
+Now, you can ssh into VM without password:)
