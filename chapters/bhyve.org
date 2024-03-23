@@ -673,3 +673,25 @@ And then, you need to ssh copy =~/.ssh/id_rsa.pub= into VM's =~/.ssh/authorized_
 #+END_SRC
 
 Now, you can ssh into VM without password:)
+
+
+** Fixed the =locked= VM
+
+Sometimes, you will some VMs stay in the =locked= state like this:
+
+#+BEGIN_SRC bash
+  doas vm list
+
+  # NAME        DATASTORE  LOADER     CPU  MEMORY  VNC  AUTO  STATE
+  # md1         default    bhyveload  1    256M    -    No    Locked (th80)
+#+END_SRC
+
+And it causes that you can't destroy the VM:
+
+#+BEGIN_SRC bash
+  doas vm destroy md1
+
+  # /usr/local/sbin/vm: WARNING: md1 appears to be running on th80 (locked) 
+#+END_SRC
+
+It might be caused by a failure shutdown or reboot. So, you can try to restart it and shut it down first. If it doesn't work, then you have to remove the =~/vm/VM_NAME_HERE/run.lock= file.
