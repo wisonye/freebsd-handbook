@@ -1013,3 +1013,38 @@ For example, you only allow:
 
 You have setup =PF= rules on the =router= for that purpose.
 
+
+
+** Useful =tmux= session for accessing all VMs
+
+Here is the handy script to create a separated =tmux= session with multiple =windows/tabs= in one-shot.
+
+Put the following bash scripts into =it_company_network_simulation_session.sh=:
+
+
+#+BEGIN_SRC bash
+  #!/bin/sh
+
+  # ----------------------------------------------------------------------------
+  # Create new `it-company-network-simulation` session with multiple windows
+  # ----------------------------------------------------------------------------
+
+  # New session with the default `coding` window and run in background!!!
+  # Let it run in background is good for creating multiple windows, otherwise, it
+  # doesn't work!!!
+  tmux new-session -s "it-company-network-simulation" -n router -d doas vm start -f router
+  tmux new-window -n sd1 doas vm start -f sd1
+  tmux new-window -n hd1 doas vm start -f hd1
+  tmux new-window -n md1 doas vm start -f md1
+  tmux new-window -n webserver doas vm start -f webserver
+
+  # Select the first window
+  tmux select-window -t 1
+
+  # Attach to the ready session (with all created windows)
+  # tmux attach-session -t "it-company-network-simulation"
+#+END_SRC
+
+=chmod +x it_company_network_simulation_session.sh=
+
+Now, you can attach to that session by running =tmux attach-session -t "it-company-network-simulation"=.
