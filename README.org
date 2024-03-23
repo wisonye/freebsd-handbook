@@ -42,6 +42,7 @@
 *** [[file:chapters/bhyve.org][Bhyve virtualization]]
 **** [[file:chapters/install-arch-linux-guest.org][Install Arch linux guest]]
 **** [[file:chapters/install-openbsd-guest.org][Install OpenBSD guest]]
+**** [[file:chapters/it-company-network-topo-simulation.org][IT company network topology simulation]]
 ** [[file:chapters/ports.org][Ports collection]]
 ** Gaming
 *** [[file:chapters/steam.org][Steam]]

@@ -1,0 +1,1015 @@
+* IT company network topology simulation
+
+We try to use the =bhyve= virtualization to simulate the following classic IT company network topology:
+
+
+#+BEGIN_SRC text
+  /---------------------\                                                /------------------\
+  | Software Department |                                                |    Data Center   |
+  |                     |    /-----------\                               |                  |
+  |  /-----\   /-----\  |----| sd_switch |----\                          |  /------------\  |
+  |  | sd1 |   | ... |  |    \-----------/    |                          |  | Web Server |  |
+  |  \-----/   \-----/  |   192.168.30.0/24   |                          |  \------------/  |
+  \---------------------/                     |                          |                  |
+                                              |     /-----------\        \------------------/ 
+                                              |     |  Centre   |                  |
+  /---------------------\                     |     |  Router   |                  |
+  | Hardware Department |                     |     |  -------  |                  |
+  |                     |    /-----------\    \------ | NIC_0 | |                  |
+  |  /-----\   /-----\  |----| hd_switch |---\      |  -------  |            /-----------\
+  |  | hd1 |   | ... |  |    \-----------/   |      |  -------  |    /-------| dc_switch |
+  |  \-----/   \-----/  |   192.168.40.0/24  \------- | NIC_1 | |    |       \-----------/
+  \---------------------/                           |  -------  |    |      192.168.60.0/24
+                                                    |  -------  |    |
+                                              /------ | NIC_2 | |    |
+                                              |     |  -------  |    |
+  /---------------------\                     |     |  -------  |    |
+  | Market   Department |                     |     | | NIC_3 |------/
+  |                     |    /-----------\    |     |  -------  |
+  |  /-----\   /-----\  |----| md_switch |----/     \-----------/
+  |  | md1 |   | ... |  |    \-----------/
+  |  \-----/   \-----/  |   192.168.50.0/24
+  \---------------------/
+#+END_SRC
+
+
+So, let do it:)
+
+
+** Create vm templates
+
+*** PC tempalte
+
+#+BEGIN_SRC conf
+  loader="bhyveload"
+  cpu=1
+  memory=256M
+  network0_type="virtio-net"
+  network0_switch="sd-switch"
+  disk0_type="nvme"
+  disk0_name="disk0"
+  disk0_size="5G"
+#+END_SRC
+
+This PC template will be used for all PC nodes in the above diagram.
+
+It has a single NIC to connect to the particular virtual switch.
+
+
+*** Centre router template
+
+#+BEGIN_SRC conf
+  loader="bhyveload"
+  cpu=1
+  memory=256M
+  network0_type="virtio-net"
+  network0_switch="sd-switch"
+  network1_type="virtio-net"
+  network1_switch="hd-switch"
+  network2_type="virtio-net"
+  network2_switch="md-switch"
+  network3_type="virtio-net"
+  # network3_switch="dc-switch"
+  network3_switch="internal"
+  disk0_type="nvme"
+  disk0_name="disk0"
+  disk0_size="5G"
+#+END_SRC
+
+The router has 4 NICs which allows it to connect across different virtual switch networks, and then control the network traffic by controlling the routing table for =PF= rules.
+
+But why is the fourth NIC set to =internal= virtual switch? That's because the =internal= virtaul switch is the existing virtual switch and I have the =PF= rule to allows it to access internet via =NAT=:
+
+#+BEGIN_SRC bash
+  doas vm switch list
+  # NAME      TYPE      IFACE        ADDRESS         PRIVATE  MTU  VLAN  PORTS
+  # internal  standard  vm-internal  192.168.2.1/24  no       -    -     igc0 
+#+END_SRC
+
+
+Once the =router= has finished the FreeBSD OS installation, I will switch back to the =dc-switch= virtual switch for demonstration.
+
+
+** Create all virtual switches
+
+#+BEGIN_SRC bash
+  doas vm switch create -t standard -a 192.168.30.1/24 sd-switch
+  doas vm switch create -t standard -a 192.168.40.1/24 hd-switch
+  doas vm switch create -t standard -a 192.168.50.1/24 md-switch
+  doas vm switch create -t standard -a 192.168.60.1/24 dc-switch
+#+END_SRC
+
+Here is the result:
+
+#+BEGIN_SRC bash
+  doas vm switch list
+
+  # NAME                 TYPE      IFACE           ADDRESS          PRIVATE  MTU  VLAN  PORTS
+  # internal             standard  vm-internal     192.168.2.1/24   no       -    -     igc0
+
+  # sd-switch  standard  vm-sd-switch  192.168.30.1/24  no       -    -     -
+  # hd-switch  standard  vm-hd-switch  192.168.40.1/24  no       -    -     -
+  # md-switch  standard  vm-md-switch  192.168.50.1/24  no       -    -     -
+  # dc-switch  standard  vm-dc-switch  192.168.60.1/24  no       -    -     -
+#+END_SRC
+
+
+** Create router VM, install and setup
+
+*** Create VM
+
+#+BEGIN_SRC bash
+  #
+  # Download FreeBSD ISO
+  #
+  doas vm iso https://download.freebsd.org/releases/amd64/amd64/ISO-IMAGES/14.0/FreeBSD-14.0-RELEASE-amd64-disc1.iso 
+
+  #
+  # Create VM
+  #
+  doas vm create -t freebsd_router router
+#+END_SRC
+
+
+*** Kickstart the installation process and finish it
+
+#+BEGIN_SRC bash
+  doas vm install -f router FreeBSD-14.0-RELEASE-amd64-disc1.iso
+#+END_SRC
+
+Then you should be able to see the text-console installation process show up, and here are the settings you should choose:
+
+> Keyboard layout: =US=
+> Hostname: =company-router=
+> Distribution Select: =Unselect all optional components=
+> Partitioning: =Auto (UFS)=
+  > Partition Scheme: =GPT=
+  > Auto layout should look like this:
+
+  #+BEGIN_SRC bash
+    nda0    5.0 GB GPT
+      nda0p1 512 KB freebsd-boot
+      nda0p2 4.7 GB freebsd-ufs     /
+      nda0p3 256 MB freebsd-swap    none
+  #+END_SRC
+
+> Root user password: =demo=  
+
+> Network configuration
+  Please select a network interface to configure: =vtnet3=
+    > DHCP: =no=
+    > Static Network Interface Configuration:
+      > IP Address: =192.168.2.30=
+      > Subnet Mask: =255.255.255.0=
+      > Default Router: =192.168.2.1=
+    > IPV6: =no=
+  > DNS Resolve Configuration:
+    > IPv4 DNS #1: =8.8.8.8=
+    > IPv4 DNS #2: =1.1.1.1=
+
+> System Configuration
+  > Choose the services you would like to be started at boot:
+    [x] sshd
+    [x] ntpd
+    [x] ntpd_sync_on_start
+                                          
+> System Hardening
+  > Choose system security hardening options:
+    [x] random_pid
+    [x] clear_tmp
+    [x] disable_syslogd
+
+> Add User Accounts: =no=
+
+Reboot
+
+
+*** Login and finish the setup
+
+**** Create your own =pkg= config and setup mirror URL
+
+You should be able to find all mirrors from [[https://pkg.freebsd.org/][pkg.freebsd.org]]
+
+#+BEGIN_SRC bash
+  mkdir -p /usr/local/etc/pkg/repos
+  cp /etc/pkg/FreeBSD.conf /usr/local/etc/pkg/repos/FreeBSD.conf
+#+END_SRC
+
+Then open =FreeBSD.conf= and replace the following URL to your selected mirror URL:
+
+#+BEGIN_SRC conf
+  #
+  # Original
+  #
+  url: "pkg+http://pkg.FreeBSD.org/${ABI}/quarterly", 
+
+  #
+  # Your mirror one, for example:
+  #
+  url: "http://pkg0.syd.FreeBSD.org/${ABI}/quarterly", 
+#+END_SRC
+
+
+Save it and update the =pkg=A meta data
+
+#+BEGIN_SRC bash
+  pkg update -f
+#+END_SRC
+
+
+**** Upgrade system security patch
+
+#+BEGIN_SRC bash
+  #
+  # Only fetch the patches and list it, it won't apply update.
+  #
+  freebsd-update fetch
+
+  #
+  # After you review (if needed), then run this command to update.
+  #
+  freebsd-update install
+#+END_SRC
+
+After that, your disk usage should be look like this:
+
+#+BEGIN_SRC bash
+  root@company-router:~ # df -Th
+
+  # Filesystem   Type     Size    Used   Avail Capacity  Mounted on
+  # /dev/nda0p2  ufs      4.6G    1.5G    2.7G    36%    /
+  # devfs        devfs    1.0K      0B    1.0K     0%    /dev
+#+END_SRC
+
+Reboot to take effect.
+
+
+**** Install optional software for better console experience
+
+#+BEGIN_SRC bash
+  pkg install neovim bat fish tree ripgrep
+#+END_SRC
+
+***** Fish settings
+
+Change default shell to =fish=:
+
+#+BEGIN_SRC bash
+  chsh -s /usr/local/bin/fish
+#+END_SRC
+
+I prefer to use the following fish configuration:
+
+#+BEGIN_SRC fish
+  set --export CLICOLOR "xterm-color"
+  set --export LSCOLORS "gxfxcxdxbxegedabagacad"
+  set --export EDITOR nvim
+
+  #--------------------------------------------------------
+  # Fish  greeting
+  #--------------------------------------------------------
+  function fish_greeting
+      echo -en ""(show_os_info)"\n"
+      echo -en ""(show_cpu_info)"\n"
+      echo -en ""(show_network_info)"\n"
+      echo ""
+  end
+
+  function show_os_info -d "Prints operating system info"
+      set_color 9DE2DD
+      echo -en " >  "
+      echo -en (uname -m)
+      set_color normal
+  end
+
+  function show_cpu_info -d "Prints information about cpu"
+      set --local os_type (uname -s)
+
+      if [ $os_type = "Linux" ]
+          set --local basic_cpu_info (lscpu | grep "Model name" | tr -s " " | cut -d : -f2)
+          set --local cores_n (lscpu | grep "CPU(s)" | head -n 1 | tr -s " " |  cut -d : -f2)
+          set cpu_info "$basic_cpu_info [ $cores_n cores ]"
+      else if [ $os_type = "Darwin" ]
+          set --local basic_cpu_info (sysctl -n machdep.cpu.brand_string)
+          set --local cores_n (sysctl -n machdep.cpu.core_count)
+          set cpu_info "$basic_cpu_info [ $cores_n cores ]"
+      else if [ $os_type = "FreeBSD" ]
+          set --local basic_cpu_info (sysctl hw.model | cut -d: -f2)
+          set --local cores_n (sysctl hw.ncpu | cut -d: -f2)
+          set cpu_info "$basic_cpu_info [ $cores_n cores ]"
+      end
+
+      set_color 9DE2DD
+      echo -en " >"
+      echo -en $cpu_info
+      set_color normal
+  end
+
+  function show_network_info -d "Prints information about network"
+      set --local os_type (uname -s)
+
+      if [ $os_type = "Linux" ]
+          set --local ip (ip address show | grep -E "inet .* global" | cut -d " " -f6)
+          set --local gw (ip route | grep default | cut -d " " -f3)
+          set network_info "IP: $ip, Default gateway: $gw"
+      else if [ $os_type = "Darwin" ]
+          set --local ip (ifconfig | grep -v "127.0.0.1" | grep "inet " | head -1 | cut -d " " -f2)
+          set --local gw (netstat -nr | grep -E "default.*UGSc" | cut -d " " -f13)
+          set network_info "IP: $ip, Default gateway: $gw"
+      else if [ $os_type = "FreeBSD" ]
+          set --local ip (ifconfig | grep -v "127.0.0.1" | grep "inet " | head -1 | cut -d " " -f2)
+          set --local gw (netstat -nr | grep -E "default" | cut -d " " -f13)
+          set network_info "IP: $ip, Default gateway: $gw"
+      end
+
+      set_color 9DE2DD
+      echo -en " > "
+      echo -en $network_info
+      set_color normal
+  end
+
+  #--------------------------------------------------------
+  # Fish VI mode prompt
+  #--------------------------------------------------------
+  function fish_default_mode_prompt --description 'Display the default mode for the prompt'
+      # Do nothing if not in vi mode
+      if test "$fish_key_bindings" = "fish_vi_key_bindings"
+          or test "$fish_key_bindings" = "fish_hybrid_key_bindings"
+          switch $fish_bind_mode
+              case default
+                  set_color A4CA9E
+                  echo ' N '
+              case insert
+                  set_color F7CE76
+                  echo ' I '
+              case replace_one
+                  set_color green
+                  echo ' R '
+              case replace
+                  set_color cyan
+                  echo ' R '
+              case visual
+                  set_color C49BC9
+                  echo ' V '
+          end
+          set_color normal
+      end
+  end
+
+  #--------------------------------------------------------
+  # Fish prompt
+  #--------------------------------------------------------
+  function fish_prompt
+      set_color A4E199 --bold
+      printf "[ FreeBSD ] %s | " "$USER"
+
+      # set_color bf4300 --bold
+      set_color 9DE2DD --bold
+
+      printf "%s %s " "$PWD" ""
+      # printf "%s%s " "$PWD" ""
+
+      set_color normal
+      printf " "
+  end
+
+  set -U fish_color_user ff5f5f
+
+  #--------------------------------------------------------
+  # 1. Enable `vi mode` key bindings
+  # 2. bind `jj` to escape
+  # 3. bind `ctrl+l` to accept the first suggection
+  #
+  # Tips: When u don't know what key (or key combo) to write
+  #       into the `bind` command, just run `fish_key_reader`
+  #       binary and press the key (or key combo), it will 
+  #       print out which `key` you should put into the `bind`
+  #       command.
+  #--------------------------------------------------------
+  set -g fish_key_bindings fish_vi_key_bindings
+  bind -M insert -m default jj  backward-char force-repaint
+  bind -M insert \f accept-autosuggestion
+
+  # Clear console
+  abbr c "clear"
+
+  abbr ll "ls -lht"
+
+  abbr vim "nvim"
+  abbr fc "nvim ~/.config/fish/config.fish"
+  abbr vc "cd ~/.config/nvim && nvim ~/.config/nvim/init.lua"
+
+  #--------------------------------------------------------
+  # PF
+  #--------------------------------------------------------
+  abbr p "doas pfctl"
+  abbr pconfig "doas nvim /etc/pf.conf"
+  abbr ptest "doas pfctl -vnf /etc/pf.conf"
+  # abbr preload "doas pfctl -f /etc/pf.conf"
+  abbr preload "doas pfctl -F all -f /etc/pf.conf"
+  abbr plist "echo -en 'NAT Rules:\n' && doas pfctl -s nat && echo -en '\nFilter Rules:\n' && doas pfctl -s rules"
+  abbr plistv "doas pfctl -vs rules"
+  abbr pstate "doas pfctl -s states"
+  abbr pstatev "doas pfctl -vs states"
+  abbr plrestart "doas rm -rf /var/log/pflog && service pflog restart"
+  abbr plview "doas tcpdump -n -r /var/log/pflog"
+
+
+  #--------------------------------------------------------
+  # Package manager
+  #--------------------------------------------------------
+  abbr pinstall "doas pkg install"
+  abbr psearch "pkg search --origins"
+  abbr pinfo "pkg info"
+  abbr pinfo2 "pkg search --origins --full -e"
+  # Query all installed
+  abbr pqueryall "pkg info --all | rg"
+  # Query installed package file list
+  abbr pqueryfile "pkg info --list-files"
+  # Remove a software and the unneeded dependencies
+  abbr premove "doas pkg delete"
+#+END_SRC
+
+
+
+**** Clean =pkg= cache
+
+#+BEGIN_SRC bash
+  rm -rf  /var/cache/pkg/* 
+#+END_SRC
+
+Now, disk usage:
+
+#+BEGIN_SRC bash
+  df -Th
+
+  # Filesystem   Type     Size    Used   Avail Capacity  Mounted on
+  # /dev/nda0p2  ufs      4.6G    1.6G    2.6G    38%    /
+  # devfs        devfs    1.0K      0B    1.0K     0%    /dev
+#+END_SRC
+
+
+*** Setup all NICs to the correct virtual switch network
+
+Add the following settings to =/etc/rc.conf=:
+
+#+BEGIN_SRC bash
+  #
+  # NICs connect to different networks
+  #
+  ifconfig_vtnet0="inet 192.168.30.254 netmask 255.255.255.0"
+  ifconfig_vtnet1="inet 192.168.40.254 netmask 255.255.255.0"
+  ifconfig_vtnet2="inet 192.168.50.254 netmask 255.255.255.0"
+  ifconfig_vtnet3="inet 192.168.60.254 netmask 255.255.255.0"
+
+  #
+  # Disable the gateway to `internal` virtual switch
+  #
+  # defaultrouter="192.168.2.1"
+
+  #
+  # Disable services that need internet to work
+  #
+  ntpd_enable="NO"
+  ntpd_sync_on_start="NO"
+#+END_SRC
+
+
+Reboot and print the routing table to confirm:
+
+#+BEGIN_SRC bash
+  netstat -rn4
+
+  # Routing tables
+
+  # Internet:
+  # Destination        Gateway            Flags     Netif Expire
+  # 127.0.0.1          link#5             UH          lo0
+  # 192.168.30.0/24    link#1             U        vtnet0
+  # 192.168.30.254     link#5             UHS         lo0
+  # 192.168.40.0/24    link#2             U        vtnet1
+  # 192.168.40.254     link#5             UHS         lo0
+  # 192.168.50.0/24    link#3             U        vtnet2
+  # 192.168.50.254     link#5             UHS         lo0
+  # 192.168.60.0/24    link#4             U        vtnet3
+  # 192.168.60.254     link#5             UHS         lo0
+#+END_SRC
+
+
+*** Shutdown and fix the virtual switch settings
+
+Shut it down now:
+
+#+BEGIN_SRC bash
+  poweroff
+#+END_SRC
+
+
+And then run =doas vm configure router= to update the network switch, make sure it looks like below:
+
+#+BEGIN_SRC conf
+  network0_type="virtio-net"
+  network0_switch="sd-switch"
+
+  network1_type="virtio-net"
+  network1_switch="hd-switch"
+
+  network2_type="virtio-net"
+  network2_switch="md-switch"
+
+  network3_type="virtio-net"
+  network3_switch="dc-switch"
+  # network3_switch="internal"
+#+END_SRC
+
+
+Now, this VM should be ready to be copied to create the rest of the PC VMs.
+
+
+** Host settings
+
+For all virtual switches and networks to work, you have to enable the IP forwarding on the Bhyve host, make sure you have the following settings in host's =/etc/rc.conf=:
+
+#+BEGIN_SRC conf
+  gateway_enable="yes"
+#+END_SRC
+
+And run the following command to confirm ip forwarding is on or not:
+
+#+BEGIN_SRC bash
+  sysctl net.inet.ip | rg forward
+  # net.inet.ip.forwarding: 1 
+#+END_SRC
+
+=1= means ip forwarding is on.
+
+
+** Create all PC VMs
+
+Create all PC VMs:
+
+#+BEGIN_SRC bash
+  doas vm create -t freebsd sd1
+  doas vm create -t freebsd hd1
+  doas vm create -t freebsd md1
+  doas vm create -t freebsd webserver
+#+END_SRC
+
+
+After that, you should have the following VM fold structures:
+
+#+BEGIN_SRC bash
+  tree
+  .
+  ├── router
+  │   ├── disk0
+  │   ├── router.conf
+  │   └── vm-bhyve.log
+  ├── sd1
+  │   ├── disk0
+  │   ├── sd1.conf
+  │   └── vm-bhyve.log
+  ├── hd1
+  │   ├── disk0
+  │   ├── hd1.conf
+  │   └── vm-bhyve.log
+  ├── md1
+  │   ├── disk0
+  │   ├── md1.conf
+  │   └── vm-bhyve.log
+  └── webserver
+      ├── disk0
+      ├── vm-bhyve.log
+      └── webserver.conf
+#+END_SRC
+
+As you can see, they all have the =disk0= virtual disk file. That means, you can use =router='s =disk0= (with FreeBSD OS in it )to replace all the other =disk0= (empty disk).
+
+Let's do it:
+
+#+BEGIN_SRC bash
+  cp -rvf ./router/disk0 ./sd1/
+  # ./router/disk0 -> ./sd1/disk0
+
+  cp -rvf ./router/disk0 ./hd1/
+  # ./router/disk0 -> ./hd1/disk0
+
+  cp -rvf ./router/disk0 ./md1/
+  # ./router/disk0 -> ./md1/disk0
+
+  cp -rvf ./router/disk0 ./webserver/
+  # ./router/disk0 -> ./webserver/disk0
+#+END_SRC
+
+
+Now, all VMs should have the same FreeBSD OS with the =router= VM.
+
+
+** Fix VM's virutal switch
+
+Open each VM's configuration file to fix the virtual switch settings:
+
+#+BEGIN_SRC bash
+  #
+  # Make sure `network0_switch="sd-switch"` and save
+  #
+  vm configure sd1
+
+  #
+  # Make sure `network0_switch="hd-switch"` and save
+  #
+  vm configure hd1
+
+  #
+  # Make sure `network0_switch="md-switch"` and save
+  #
+  vm configure md1
+
+  #
+  # Make sure `network0_switch="dc-switch"` and save
+  #
+  vm configure webserver
+#+END_SRC
+
+
+** Fix VM's FreeBSD OS settings
+
+Keep that in mind:
+
+- All PC VMs login username is =root=, password is =demo=.
+
+- =Router= has 4 NICs and here are their IP addresses:
+
+  > =vtnet0=: 192.168.30.254 (connect to =sd-switch=)
+  > =vtnet1=: 192.168.40.254 (connect to =hd-switch=)
+  > =vtnet2=: 192.168.50.254 (connect to =md-switch=)
+  > =vtnet3=: 192.168.60.254 (connect to =dc-switch=)
+
+
+*** You have to start the =router= first for the PC VMs to work
+
+#+BEGIN_SRC bash
+  doas vm start -f router 
+#+END_SRC
+
+
+*** =sd1= (Software department PC 1)
+
+Start the =sd1= VM:
+
+#+BEGIN_SRC bash
+  doas vm start -f sd1
+#+END_SRC
+
+Then, use the following settings to replace the old one:
+
+#+BEGIN_SRC conf
+  hostname="sd1"
+
+  #
+  # Connect to sd-switch network
+  #
+  ifconfig_vtnet0="inet 192.168.30.10 netmask 255.255.255.0"
+
+  #
+  # Default gateway set to `router`
+  #
+  defaultrouter="192.168.30.254"
+#+END_SRC
+
+Reboot now.
+
+Re-login and run the following command to check:
+
+**** Assigned NIC IP
+
+#+BEGIN_SRC bash
+  ifconfig
+
+  # vtnet0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+  #         options=80028<VLAN_MTU,JUMBO_MTU,LINKSTATE>
+  #         ether 58:9c:fc:0a:ac:e7
+           inet 192.168.30.10 netmask 0xffffff00 broadcast 192.168.30.255
+  #         media: Ethernet autoselect (10Gbase-T <full-duplex>)
+  #         status: active 
+#+END_SRC
+
+Works.
+
+
+**** Default gateway in routing table
+
+#+BEGIN_SRC bash
+  netstat -rn4
+
+  # Routing tables
+
+  # Internet:
+  # Destination        Gateway            Flags     Netif Expire
+  default            192.168.30.254     UGS      vtnet0
+  # 127.0.0.1          link#2             UH          lo0
+  # 192.168.30.0/24    link#1             U        vtnet0
+  # 192.168.30.10      link#2             UHS         lo0 
+#+END_SRC
+
+Works.
+
+
+**** Ping =router= should work
+
+#+BEGIN_SRC bash
+  ping 192.168.30.254
+
+  # PING 192.168.30.254 (192.168.30.254): 56 data bytes
+  # 64 bytes from 192.168.30.254: icmp_seq=0 ttl=64 time=0.227 ms
+  # 64 bytes from 192.168.30.254: icmp_seq=1 ttl=64 time=0.280 ms 
+#+END_SRC
+
+Works.
+
+
+*** =hd1= (Hardware department PC 1)
+
+Start the =hd1= VM:
+
+#+BEGIN_SRC bash
+  doas vm start -f hd1
+#+END_SRC
+
+Then, use the following settings to replace the old one:
+
+#+BEGIN_SRC conf
+  hostname="hd1"
+
+  #
+  # Connect to hd-switch network
+  #
+  ifconfig_vtnet0="inet 192.168.40.10 netmask 255.255.255.0"
+
+  #
+  # Default gateway set to `router`
+  #
+  defaultrouter="192.168.40.254"
+#+END_SRC
+
+Reboot now.
+
+Re-login and run the following command to check:
+
+**** Assigned NIC IP
+
+#+BEGIN_SRC bash
+  ifconfig
+
+  # vtnet0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+  #         options=80028<VLAN_MTU,JUMBO_MTU,LINKSTATE>
+  #         ether 58:9c:fc:04:2c:c0
+           inet 192.168.40.10 netmask 0xffffff00 broadcast 192.168.40.255
+  #         media: Ethernet autoselect (10Gbase-T <full-duplex>)
+  #         status: active
+  #         nd6 options=29<PERFORMNUD,IFDISABLED,AUTO_LINKLOCAL>
+#+END_SRC
+
+Works.
+
+
+**** Default gateway in routing table
+
+#+BEGIN_SRC bash
+  netstat -rn4
+
+  # Routing tables
+
+  # Internet:
+  # Destination        Gateway            Flags     Netif Expire
+   default            192.168.40.254     UGS      vtnet0
+  # 127.0.0.1          link#2             UH          lo0
+  # 192.168.40.0/24    link#1             U        vtnet0
+  # 192.168.40.10      link#2             UHS         lo0
+#+END_SRC
+
+Works.
+
+
+**** Ping =router= should work
+
+#+BEGIN_SRC bash
+  ping 192.168.40.254
+
+  # PING 192.168.40.254 (192.168.40.254): 56 data bytes
+  # 64 bytes from 192.168.40.254: icmp_seq=0 ttl=64 time=0.227 ms
+  # 64 bytes from 192.168.40.254: icmp_seq=1 ttl=64 time=0.280 ms 
+#+END_SRC
+
+Works.
+
+
+*** =md1= (Market department PC 1)
+
+Start the =md1= VM:
+
+#+BEGIN_SRC bash
+  doas vm start -f md1
+#+END_SRC
+
+Then, use the following settings to replace the old one:
+
+#+BEGIN_SRC conf
+  hostname="md1"
+
+  #
+  # Connect to md-switch network
+  #
+  ifconfig_vtnet0="inet 192.168.50.10 netmask 255.255.255.0"
+
+  #
+  # Default gateway set to `router`
+  #
+  defaultrouter="192.168.50.254"
+#+END_SRC
+
+Reboot now.
+
+Re-login and run the following command to check:
+
+**** Assigned NIC IP
+
+#+BEGIN_SRC bash
+  ifconfig
+
+  # vtnet0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+  #         options=80028<VLAN_MTU,JUMBO_MTU,LINKSTATE>
+  #         ether 58:9c:fc:0a:70:86
+           inet 192.168.50.10 netmask 0xffffff00 broadcast 192.168.50.255
+  #         media: Ethernet autoselect (10Gbase-T <full-duplex>)
+  #         status: active
+  #         nd6 options=29<PERFORMNUD,IFDISABLED,AUTO_LINKLOCAL>
+#+END_SRC
+
+Works.
+
+
+**** Default gateway in routing table
+
+#+BEGIN_SRC bash
+  netstat -rn4
+
+  # Routing tables
+  # Internet:
+  # Destination        Gateway            Flags     Netif Expire
+   default            192.168.50.254     UGS      vtnet0
+  # 127.0.0.1          link#2             UH          lo0
+  # 192.168.50.0/24    link#1             U        vtnet0
+  # 192.168.50.10      link#2             UHS         lo0
+#+END_SRC
+
+Works.
+
+
+**** Ping =router= should work
+
+#+BEGIN_SRC bash
+  ping 192.168.50.254
+
+  # PING 192.168.50.254 (192.168.50.254): 56 data bytes
+  # 64 bytes from 192.168.50.254: icmp_seq=0 ttl=64 time=0.243 ms
+  # 64 bytes from 192.168.50.254: icmp_seq=1 ttl=64 time=0.310 ms
+#+END_SRC
+
+Works.
+
+
+
+*** =webserver= (Data center server 1)
+
+Start the =webserver= VM:
+
+#+BEGIN_SRC bash
+  doas vm start -f webserver
+#+END_SRC
+
+Then, use the following settings to replace the old one:
+
+#+BEGIN_SRC conf
+  hostname="webserver"
+
+  #
+  # Connect to dc-switch network
+  #
+  ifconfig_vtnet0="inet 192.168.60.10 netmask 255.255.255.0"
+
+  #
+  # Default gateway set to `router`
+  #
+  defaultrouter="192.168.60.254"
+#+END_SRC
+
+Reboot now.
+
+Re-login and run the following command to check:
+
+**** Assigned NIC IP
+
+#+BEGIN_SRC bash
+  ifconfig
+
+  # vtnet0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+  #         options=80028<VLAN_MTU,JUMBO_MTU,LINKSTATE>
+  #         ether 58:9c:fc:0f:e0:26
+           inet 192.168.60.10 netmask 0xffffff00 broadcast 192.168.60.255
+  #         media: Ethernet autoselect (10Gbase-T <full-duplex>)
+  #         status: active
+  #         nd6 options=29<PERFORMNUD,IFDISABLED,AUTO_LINKLOCAL>
+#+END_SRC
+
+Works.
+
+
+**** Default gateway in routing table
+
+#+BEGIN_SRC bash
+  netstat -rn4
+
+  # Routing tables
+  # Internet:
+  # Destination        Gateway            Flags     Netif Expire
+   default            192.168.60.254     UGS      vtnet0
+  # 127.0.0.1          link#2             UH          lo0
+  # 192.168.60.0/24    link#1             U        vtnet0
+  # 192.168.60.10      link#2             UHS         lo0
+#+END_SRC
+
+Works.
+
+
+**** Ping =router= should work
+
+#+BEGIN_SRC bash
+  ping 192.168.60.254
+
+  # PING 192.168.60.254 (192.168.60.254): 56 data bytes
+  # 64 bytes from 192.168.60.254: icmp_seq=0 ttl=64 time=0.243 ms
+  # 64 bytes from 192.168.60.254: icmp_seq=1 ttl=64 time=0.310 ms
+#+END_SRC
+
+Works.
+
+
+** Control network traffic between different departments' network
+
+Right now all PC VMs can reach =router= and should be able to talk to other VMs in the same department network, but it doesn't allow access across departments.
+
+There are 2 solutions to make that happen:
+
+*** Allow all VMs access the other VMs in different departments
+
+This is a pretty regular case and super easy to make that happen.
+
+Let's take a look at the =router='s routing table:
+
+#+BEGIN_SRC bash
+  netstat -rn4
+
+  # Routing tables
+
+  # Internet:
+  # Destination        Gateway            Flags     Netif Expire
+  # 127.0.0.1          link#5             UH          lo0
+  # 192.168.30.0/24    link#1             U        vtnet0
+  # 192.168.30.254     link#5             UHS         lo0
+  # 192.168.40.0/24    link#2             U        vtnet1
+  # 192.168.40.254     link#5             UHS         lo0
+  # 192.168.50.0/24    link#3             U        vtnet2
+  # 192.168.50.254     link#5             UHS         lo0
+  # 192.168.60.0/24    link#4             U        vtnet3
+  # 192.168.60.254     link#5             UHS         lo0
+#+END_SRC
+
+Theoretically, any network packet can go through different departments' networks, as =router= has 4 NICs connected to all departments' virtual switches. The only thing missing is =ip forwarding= is disabled so far.
+
+So, let enable it:
+
+#+BEGIN_SRC bash
+  sysctl net.inet.ip.forwarding=1
+#+END_SRC
+
+If you want that setting to become persistent, then add the following settings to =/etc/rc.conf=:
+
+#+BEGIN_SRC bash
+  gateway_enable="yes"
+#+END_SRC
+
+
+Now, all VMs should be able to ping each other across different departments' networks.
+
+
+*** Precise control of network traffic between different departments' networks.
+
+For example, you only allow:
+
+- =sd1= to access =webserver=
+- =sd1= can talk to =hd1= and =md1=
+- etc...
+
+You have setup =PF= rules on the =router= for that purpose.
+
