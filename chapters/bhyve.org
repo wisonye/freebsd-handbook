@@ -182,7 +182,7 @@ The new NIC's name will be =vm-YOUR_VIRTUAL_SWITCH_NAME=
           nd6 options=9<PERFORMNUD,IFDISABLED>
 #+END_SRC
 
-Pay attention to the group attributes: =groups: bridge vm-switch viid-4c918@=, it helps you to manage your =PF= rules related to that =vm-public= i
+Pay attention to the group attributes: =groups: bridge vm-switch viid-4c918@=, it helps you to manage your =PF= rules related to that =vm-public=
 
 
 **** How to switch physical interface for the given virtual switch
@@ -467,6 +467,46 @@ As you've already had your pass rules on =nic_eth=, that's why you don't need to
   pass out quick on $nic_vm_group proto tcp from ($nic_vm_switch) to $trust_vm_node port ssh
 #+END_SRC
 
+
+
+**** =PF= service failed to start issue
+
+After applying the above =PF= rules, the =PF= service always fails to start on every reboot, here is the related error message from =dmesg -a=:
+
+#+BEGIN_SRC bash
+  Enabling pf
+  no IP address found for vm-internal:network
+  /etc/pf.conf:52: could not parse host specification
+  no IP address found for vm-internal:network
+  /etc/pf.conf:126: could not parse host specification
+  no IP address found for vm-internal:network
+  /etc/pf.conf:131: could not parse host specification
+  no IP address found for vm-internal:network
+  /etc/pf.conf:136: could not parse host specification
+  no IP address found for vm-internal:network
+  /etc/pf.conf:143: could not parse host specification
+  pfctl: Syntax error in config file: pf rules not loaded
+  /etc/rc: WARNING: Unable to load /etc/pf.conf.
+  .
+  Clearing /tmp.
+  Updating motd:.
+  Updating /var/run/os-release done.
+  bridge0: Ethernet address: 58:9c:fc:10:65:3b
+  bridge0: changing name to 'vm-internal'
+  igc0: promiscuous mode enabled
+  igc0: link state changed to DOWN
+  vm-internal: link state changed to UP
+  Starting powerd.
+#+END_SRC
+
+
+All those =no IP address found for vm-internal:network= errors are related to the =PF= rules which has =$nic_vm_switch:network= settings.
+
+As you can see from the log, =bridge0: changing name to 'vm-internal'= happens AFTER =PF= rules to be loaded, that's why =$nic_vm_switch:network= to cause error, as IP address doesn't exists yet!!!
+
+I've already tried in a several ways (e.g. add =vm= to =PF='s REQUIRE list, etc), but still no luck.
+
+So, the only way I make it works is just running =preload= after login as a temporary solution :(
 
 
 *** Virtual switch configuration file
