@@ -49,3 +49,5 @@
 ** Development
 *** [[file:chapters/c-cpp.org][C/C++]]
 *** [[file:chapters/socket-communication.org][Socket (inter-process) communication]]
+** How to
+*** [[file:chapters/how-to-show-cpu-info.org][How to show CPU info]]

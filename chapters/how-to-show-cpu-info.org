@@ -1,0 +1,123 @@
+* How to show CPU info
+
+** Show how many cores
+
+#+BEGIN_SRC bash
+  #
+  # Read from boot message
+  #
+  rg "FreeBSD/SMP" /var/run/dmesg.boot
+  # 27:FreeBSD/SMP: Multiprocessor System Detected: 16 CPUs
+  # 28:FreeBSD/SMP: 1 package(s) x 8 core(s) x 2 hardware threads
+
+  #
+  # Read from `sysctl`
+  #
+  sysctl kern.smp.cpus
+  # kern.smp.cpus: 16
+  sysctl hw.ncpu
+  # hw.ncpu: 16
+#+END_SRC
+
+
+** Show CPU info
+
+*** Grab that from boot message:
+
+#+BEGIN_SRC bash
+  rg CPU /var/run/dmesg.boot
+
+  # 10:CPU: 11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz (2304.00-MHz K8-class CPU)
+  # 27:FreeBSD/SMP: Multiprocessor System Detected: 16 CPUs
+  # 51:cpu0: <ACPI CPU> on acpi0
+#+END_SRC
+
+
+*** =lscpu=
+
+#+BEGIN_SRC bash
+  doas pkg install lscpu
+
+  #
+  # To make `lscpu(8)` work the `cpuctl(4)` kernel module is needed.
+  #
+  kldload cpuctl 
+#+END_SRC
+
+Then, run =lscpu= should give you the output like this:
+
+#+BEGIN_SRC bash
+  Architecture:            amd64
+  Byte Order:              Little Endian
+  Total CPU(s):            16
+  Thread(s) per core:      2
+  Core(s) per socket:      8
+  Socket(s):               1
+  Vendor:                  GenuineIntel
+  CPU family:              6
+  Model:                   141
+  Model name:              11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz
+  Stepping:                1
+  L1d cache:               48K
+  L1i cache:               32K
+  L2 cache:                1280K
+  L3 cache:                24M
+  Flags:                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 cflsh ds acpi mmx fxsr sse sse2 ss htt tm pbe sse3 pclmulqdq dtes64 monitor ds_cpl vmx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline aes xsave osxsave avx f16c rdrnd fsgsbase tsc_adjust bmi1 avx2 fp_dp smep bmi2 erms invpcid fpcsds pqe pat pse36 rdseed adx smap clflushopt clwb intel_pt sha umip pku ospke syscall nx pdpe1gb rdtscp lm lahf_lm lzcnt
+#+END_SRC
+
+
+** Show CPU frequency
+
+#+BEGIN_SRC bash
+  sysctl dev.cpu | rg freq
+
+  # dev.cpu.15.freq_levels: 2304/-1
+  # dev.cpu.15.freq: 1200
+  # dev.cpu.13.freq_levels: 2304/-1
+  # dev.cpu.13.freq: 1175
+  # dev.cpu.11.freq_levels: 2304/-1
+  # dev.cpu.11.freq: 1101
+  # dev.cpu.9.freq_levels: 2304/-1
+  # dev.cpu.9.freq: 1101
+  # dev.cpu.7.freq_levels: 2304/-1
+  # dev.cpu.7.freq: 4207
+  # dev.cpu.5.freq_levels: 2304/-1
+  # dev.cpu.5.freq: 4207
+  # dev.cpu.3.freq_levels: 2304/-1
+  # dev.cpu.3.freq: 4207
+  # dev.cpu.1.freq_levels: 2304/-1
+  # dev.cpu.1.freq: 4207
+  # dev.cpu.14.freq_levels: 2304/-1
+  # dev.cpu.14.freq: 4207
+  # dev.cpu.12.freq_levels: 2304/-1
+  # dev.cpu.12.freq: 4207
+  # dev.cpu.10.freq_levels: 2304/-1
+  # dev.cpu.10.freq: 4207
+  # dev.cpu.8.freq_levels: 2304/-1
+  # dev.cpu.8.freq: 4207
+  # dev.cpu.6.freq_levels: 2304/-1
+  # dev.cpu.6.freq: 4207
+  # dev.cpu.4.freq_levels: 2304/-1
+  # dev.cpu.4.freq: 4208
+  # dev.cpu.2.freq_levels: 2304/-1
+  # dev.cpu.2.freq: 4207
+  # dev.cpu.0.freq_levels: 2304/-1
+  # dev.cpu.0.freq: 4207 
+#+END_SRC
+
+How to read? For example:
+
+- =dev.cpu.0.freq_levels: 2501/35000 2500/35000 2200/29755 2000/26426 1800/23233 1600/20164 1400/17226 1200/14408 1000/11713 800/9140=
+
+  CPU supported frequency levels with power usage after the =/= character. The =2500/35000= can be read as =2.5 GHz= frequency with =35 W= power usage and =2501= is the Turbo Mode. The lowest is =800 MHz= with about =9 W= usage.
+
+- =dev.cpu.0.freq: 800=
+
+  CPU current frequency
+
+
+So, the example output above:
+
+=dev.cpu.10.freq: 4207= means the tenth core is working at =4.2 GHz=.
+
+=dev.cpu.10.freq_levels: 2304/-1= means the tenth core supports =2.3 GHz=
