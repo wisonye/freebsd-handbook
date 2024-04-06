@@ -111,6 +111,12 @@ How to read? For example:
 
   CPU supported frequency levels with power usage after the =/= character. The =2500/35000= can be read as =2.5 GHz= frequency with =35 W= power usage and =2501= is the Turbo Mode. The lowest is =800 MHz= with about =9 W= usage.
 
+
+- =dev.cpu.0.freq_levels: 2304/-1=
+
+This indicates that the new =hwpstate_intel(4)= driver is in use. On such systems, the oid =dev.cpu.%d.freq_levels= will show only the maximum CPU frequency, and will indicate a power consumption level of =-1=.
+
+
 - =dev.cpu.0.freq: 800=
 
   CPU current frequency
