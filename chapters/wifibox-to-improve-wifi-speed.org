@@ -1,0 +1,141 @@
+* =wifibox= to improve WIFI speed
+
+=FreeBSD= WIFI speed can't reach =ac= standard yet, so it's pretty slow at this moment, here is the description from =man iwlwifi=:
+
+#+BEGIN_SRC text
+  The driver uses the linuxkpi_wlan and linuxkpi compat framework to bridge
+  between the Linux and native FreeBSD driver code as well as to the native
+  net80211(4) wireless stack.
+
+  While iwlwifi supports all 802.11 a/b/g/n/ac/ax the compatibility code
+  currently only supports 802.11 a/b/g modes.  Support for 802.11 n/ac is
+  to come. 802.11ax and 6Ghz support are planned.
+#+END_SRC
+
+So, that's how =wifibox= comes to the rescue.
+
+
+** Install =wifibox=
+
+#+BEGIN_SRC bash
+  doas pkg install wifibox
+  # New packages to be INSTALLED:
+  #         grub2-bhyve: 0.40_11
+  #         socat: 1.8.0.0_3
+  #         wifibox: 1.4.1
+  #         wifibox-alpine: 20240328
+  #         wifibox-core: 0.13.0
+  # 
+  # Number of packages to be installed: 5
+  # 
+  # The process will require 124 MiB more space.
+  # 123 MiB to be downloaded.
+#+END_SRC
+
+After that, =/usr/local/sbin/wifibox= will be installed, it's just a shell script (not binary).
+
+
+** Configuration
+
+Make sure you read the man pages, that's the best way to learn how it works!!!
+
+#+BEGIN_SRC bash
+  man wifibox
+  man wifibox-alpine
+#+END_SRC
+
+
+*** Get your WIFI device PCI info for the PCI passthrough settings
+
+For my case:
+
+#+BEGIN_SRC bash
+  pciconf -lv | rg -B4 network
+ 
+  # igc0@pci0:1:0:0:        class=0x020000 rev=0x03 hdr=0x00 vendor=0x8086 device=0x15f3 subvendor=0x8086 subdevice=0x0000
+  #     vendor     = 'Intel Corporation'
+  #     device     = 'Ethernet Controller I225-V'
+  #     class      = network
+  #     subclass   = ethernet
+  # iwlwifi0@pci0:2:0:0:    class=0x028000 rev=0x1a hdr=0x00 vendor=0x8086 device=0x2725 subvendor=0x8086 subdevice=0x0024
+  #     vendor     = 'Intel Corporation'
+  #     device     = 'Wi-Fi 6 AX210/AX211/AX411 160MHz'
+  #     class      = network
+#+END_SRC
+
+Pay attention to this: =iwlwifi0@pci0:2:0:0=
+
+That means:
+
+1. You need to put =passthru=0/2/0= settings to =/usr/local/etc/wifibox/bhyve.conf=!!!
+
+2. You need to tell =FreeBSD= to stop loading =iwlwifi= driver automatically 
+
+
+*** Make change to =/usr/local/etc/wifibox/bhyve.conf=
+
+For my case:
+
+#+BEGIN_SRC bash
+  cpus=1
+  memory=128M
+  console=no
+  passthru=0/2/0
+  priority=50
+#+END_SRC
+
+
+*** Make change to =/etc/rc.conf=
+
+You need to enable =wifibox= servcie and tell =FreeBSD= to stop loading =iwlwifi= driver automatically.
+
+Add the following settings to =/etc/rc.conf=:
+
+#+BEGIN_SRC bash
+  #
+  # Start `wifibox` service automatically
+  #
+  wifibox_enable="YES"
+
+  #
+  # Do not load the related driver automatically
+  #
+  devmatch_enable="YES"
+  devmatch_blocklist="if_iwm if_iwlwifi"
+
+  #
+  # Enable DHCP on `wifibox0` NIC
+  #
+  ifconfig_wifibox0="SYNCDHCP"
+
+  #
+  # In addition to this, to reduce boot times, dhclient(8) can be instructed
+  # to run in the background and not to wait for a positive link and issuing
+  # an IPv4 address after it has been launched.
+  #
+  # background_dhclient_wifibox0="YES"
+  # defaultroute_delay="0"
+
+  #
+  # If preferred, static IPv4 address configuration is possible with this
+  # method.  Assume that wifibox0 is configured as 10.0.0.1/24 on the guest's
+  # side, and the host wants to use the 10.0.0.2/24 IPv4 address.
+  #
+  defaultrouter="10.0.0.1"
+  ifconfig_wifibox0="inet 10.0.0.2/24"
+#+END_SRC
+
+
+
+*** How to debug if it doesn't work as expected
+
+You can set =loglevel=info= to =/usr/local/etc/wifibox/core.conf= for better debugging message output.
+
+If =wifibox= does not have behave in the expected way, check =/var/log/wifibox.log= for errors. This file holds messages about the progress of each executed command, and their amount depends on the
+configured level of logging.
+
+The log files of the guest are exported to the host and they are made available under the =/var/run/wifibox/appliance/log= directory.
+
+There it is recommended to check the =/var/run/wifibox/appliance/log/dmesg= file for messages related to the boot sequence, such as driver initialization, and the =/var/run/wifibox/appliance/log/messages= file for the run-time system messages, which are usually emitted by the daemons.
+
+If all else fails, use the console command to connect to the guest. In that case, please study the =man wifibox-alpine= manual page before proceeding.

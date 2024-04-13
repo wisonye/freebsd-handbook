@@ -1,4 +1,4 @@
-* Fix WIFI
+* WIFI
 
 ** Print out your WIFI chipset driver/model
 
@@ -11,11 +11,11 @@
 That means =iwlwifi0= is the value your wanted.
 
 
-** Change or generate =/etc/wpa_supplicant.conf=
+** Configurations
 
 *** If you configure WIFI during installing FreeBSD
 
-- =/etc/rc.conf=
+**** =/etc/rc.conf=
 
   You should see the following (WIFI related) settings insdie =/etc/rc.conf=:
 
@@ -29,7 +29,7 @@ That means =iwlwifi0= is the value your wanted.
   Optional =group pfnic= is used to set the NIC with the given group name (=pnfic=) , then you can use that group name on firewall setttings when needed.
 
 
-- =/etc/wpa_supplicant.conf=
+**** =/etc/wpa_supplicant.conf=
 
   You should see the following (WIFI related) settings insdie =/etc/rc.conf=:
 
@@ -79,16 +79,20 @@ So, it should look like this:
 #+END_SRC
 
 Make sure put the =scan_ssid=1= there if you're using a hidden SSID!!!
+Make sure to change the =scan_ssid=1= if you're using a hidden SSID!!!
+Make sure to change the =scan_ssid=1= if you're using a hidden SSID!!!
 
 
-**** Add wireless card settings to `/etc/rc.conf`
+**** Add wireless card settings to =/etc/rc.conf=
 
 #+BEGIN_SRC bash
   wlans_iwlwifi0="wlan0"
   ifconfig_wlan0="WPA DHCP"
+  # ifconfig_wlan0="group pfnic WPA DHCP"
   create_args_wlan0="country NZ regdomain APAC2"
 #+END_SRC
 
+Optional =group pfnic= is used to set the NIC with the given group name (=pnfic=) , then you can use that group name on firewall setttings when needed.
 
 Pay attentions:
 
@@ -154,8 +158,7 @@ Here is my =TH80= wireless card =ifconfig= output:
 #+END_SRC
 
 
-Wireless card model is `Intel AX210NGW` and use `iwlwifi` driver, but the
-current driver has a few problems:
+Wireless card model is =Intel AX210NGW= and use =iwlwifi= driver, but the current driver has a few problems:
 
 *** Keep printing out =No beacon heard and the session protection is over already...= on the first connection when you boot the PC:
 
@@ -232,3 +235,22 @@ As you can see, =ugen0.4: <vendor 0x8087 product 0x0032>= is an unrecognized dev
 
 
 =/sys/netgraph/bluetooth/drivers/ubt/ng_ubt_intel.c=
+
+
+** Slow WIFI issue
+
+=FreeBSD= WIFI speed can't reach =ac= standard yet, so it's pretty slow at this moment, here is the description from =man iwlwifi=:
+
+#+BEGIN_SRC text
+  The driver uses the linuxkpi_wlan and linuxkpi compat framework to bridge
+  between the Linux and native FreeBSD driver code as well as to the native
+  net80211(4) wireless stack.
+
+  While iwlwifi supports all 802.11 a/b/g/n/ac/ax the compatibility code
+  currently only supports 802.11 a/b/g modes.  Support for 802.11 n/ac is
+  to come. 802.11ax and 6Ghz support are planned.
+#+END_SRC
+
+So, that's how =wifibox= comes to the rescue.
+
+Plz read this chapter for more details: [[file:wifibox-to-improve-wifi-speed.org][wifibox to improve WIFI speed]]
