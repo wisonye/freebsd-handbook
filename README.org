@@ -52,3 +52,4 @@
 *** [[file:chapters/socket-communication.org][Socket (inter-process) communication]]
 ** How to
 *** [[file:chapters/how-to-show-cpu-info.org][How to show CPU info]]
+*** [[file:chapters/how-to-fix-broken-rc-config.org][How to fix broken /etc/rc.conf]]
