@@ -90,6 +90,11 @@ If you want to know the entire system different, then you should compare the =PO
   doas zfs diff zroot/ROOT/default@minimal zroot/ROOT/default@hyprland
 
   #
+  # Compare specified snapshots and current state (without snapshot name)
+  #
+  doas zfs diff zroot/ROOT/default@minimal zroot/ROOT/default
+
+  #
   # Save the compare result to a file
   #
   doas zfs diff zroot/ROOT/default@minimal zroot/ROOT/default@x > ~/temp/snapshot-diff.txt
