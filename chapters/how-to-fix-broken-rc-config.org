@@ -4,4 +4,16 @@ When you make a mistake in the =/etc/rc.conf= or another startup file, it might 
 
 Reboot and choose =Single user mode= (or type =boot -s= in the boot prompt), press =Enter= to access the default shell or type your preferred shell (e.g. =/usr/local/bin/fish=).
 
-And then run =mount -urw /= to re-mount the root file system into =read/write= mode, now you're able to fix the broken =/etc//rc.conf=:)
+After that, run the following commands to fix the broken =/etc/rc.conf=:
+
+#+BEGIN_SRC bash
+  #
+  # You must re-mount the root file system into `read/write` mode!!!
+  #
+  mount -urw
+
+  #
+  # Now, fix it:)
+  #
+  /usr/local/bin/nvim /etc/rc.conf
+#+END_SRC
