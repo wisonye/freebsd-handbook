@@ -28,6 +28,7 @@
 *** [[file:chapters/list_hardware_info.org][List hardare info]]
 *** [[file:chapters/power_saving_control.org][Power saving control]]
 *** [[file:chapters/about_cleaning_cache.org][About cleaning cache]]
+** [[file:chapters/bootloader.org][Bootloader]]
 ** Software installation
 *** [[file:chapters/file-search.org][File search and full-text search]]
 *** [[file:chapters/fonts.org][fonts]]

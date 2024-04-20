@@ -1,0 +1,395 @@
+* Bootloader
+
+More detailed info here:
+
+[[https://docs.freebsd.org/en/books/handbook/boot/][Chapter 15. The FreeBSD Booting Process]]
+
+
+**  Default bootloader prompt
+
+This is the normal =boot loader= prompt:
+
+#+BEGIN_SRC bash
+  >> FreeBSD/x86 BOOT
+  Default: 0:ad(0,a)/boot/loader
+  boot:
+#+END_SRC
+
+=0:ad(0,a)/boot/loader= means (from left to right):
+
+- =0=: bios_drive
+
+  The drive number as recognized by the BIOS. =0= for  the first drive, =1= for the second drive, etc.
+
+- =ad=: interface
+
+  The  type  of  controller to boot from. Note that the controller is required to have BIOS support since the BIOS services are used to load the boot file image.
+
+  The supported interfaces are:
+
+    =ad=    ST506, IDE, ESDI, RLL disks on a WD100[2367] or lookalike controller
+    =fd=    5 1/4" or 3 1/2" High density floppies
+    =da=    SCSI disk on any supported	SCSI controller
+
+- =0=: unit
+
+  The unit number of the drive on the interface being used. =0= for the first drive, =1= for the second drive, etc.
+
+- =a=: Partition
+
+  The partition letter inside thei BSD portion of the disk.  See =bsdlabel(8)=. By convention, only partition =a= contains a bootable image.
+
+- =/boot/loader=: The pathname of the file to boot (relative to the root directory on the specified  partition). Defaults to =/boot/kernel/kernel=. Symbolic links are not supported (hard links are).
+
+
+You can type commands before the default timeout ends.
+
+
+**  Print the supported commands
+
+#+BEGIN_SRC bash
+  boot: help
+  boot: help [topic]
+#+END_SRC
+
+
+**  Displays loaded modules.: =lsmod [-v]=
+
+**  Displays the files specified (like =less= does): =more filename=
+
+**  List bootable disks: =lsdev [-v]=
+
+#+BEGIN_SRC bash
+  Ok lsdev
+  disk devices:
+      disk0: BIOS drive C (937703088 X 512):
+        disk0p1: FreeBSD boot
+        disk0p2: FreeBSD swap swap
+        diskipS: FreeBSD 2FS
+      disk1: BIOS drive D (937703088 X 512):
+        disk1p1: FreeBSD boot
+        disk1p2: FreeBSD sWap
+        disk1p3: FreeBSD ZFS
+  zfs devices:
+      zfs:zroot
+  OK
+#+END_SRC
+
+So, the upcoming commands (e.g. =ls=) are targeted on that disk!!!
+
+
+**  Use the specified kernel to boot
+
+#+BEGIN_SRC bash
+  #
+  # Unload the usual kernel and modules
+  #
+  unload
+
+  #
+  # Load the specified kernel file to boot
+  #
+  # `/boot/GENERIC/kernel` default kernel that comes
+  #                        with an installation
+  # `/boot/kernel/kernel` is the current kernel
+  # `/boot/kernel.old/kernel` is the previous kernel
+  #
+  load /boot/kernel/kernel
+  load /boot/kernel/zfs.ko
+
+  #
+  # Boot the kernel
+  #
+  boot
+#+END_SRC
+
+
+**  Boot options
+
+=boot [options] [kernal name]=
+
+Supported options:
+
+- =-a=: During kernel initialization, ask for the device to mount as the root file system.
+
+- =-C=: Boot the root file system from a CDROM.
+
+- =-s=: Boot into single-user mode.
+
+- =-v=: Be more verbose during kernel startup.
+
+
+**  Boot into single user mode
+
+If you make a mistake to the important configuration file (e.g. =/etc/rc.conf=) to cause the system can't boot, or you forgot the =root= password, then you should boot into =single user= mode to do a fix:
+
+#+BEGIN_SRC bash
+  boot: boot -s
+#+END_SRC
+
+
+**  Boot configuration customization
+
+If you think the boot process seems to fail on the particular modules or drivers, then you should do some boot config settings before the boot process kick-off.
+
+#+BEGIN_SRC bash
+  #
+  # First, unload the usual kernel and modules
+  #
+  unload
+
+  #
+  # Sets the specified environment variables.
+  # `set variable=value`, for example:
+  #
+  set kernel="mykernel"
+
+  #
+  # Goes through the same automatic configuration of modules
+  # based on specified `variables`, most commonly `kernel`.
+  #
+  boot-conf
+#+END_SRC
+
+
+**  Boot configuration customization in another way (=OpenBSD= example)
+
+#+BEGIN_SRC bash
+  boot> boot -c
+  UKC>
+#+END_SRC
+
+Sometimes, you can't type at this stage if you're using some special mechanical keyboards (as the keyboard driver didn't load at that moment).
+
+For example, here is my case when using =Varmilo= keyboard or =OpenBSD= vm in =Parallel Desktop=:
+
+- [[https://drive.google.com/file/d/1Iq2skUDZFMYqYKYJGiAhVm7EAu0VRX7d/view?usp=sharing][video recording]]
+
+- [[https://ibb.co/QchqhtY][Another screenshot]]
+
+
+So, for those cases, you have to boot into =/bsd.rs= and run the =shell= to mount your OpenBSD partitions to do a fix:
+
+#+BEGIN_SRC conf
+  boot> boot sd0a:/bsd.rs
+
+  Welcome to the OpenBSD/arm64 7.5 installation program.
+  (I)nstall, (Upgrade, (A)utoinstall or (5)hell? 5
+  #
+#+END_SRC
+
+
+If the =boot> boot sd0a:/bsd.rs= failed, then you have to plugin the installer USB and boot into the =installer USB's /bsd.rd=!!!
+
+
+Now, you're run the following commands to try to do a fix:
+
+***  List OpenBSD disk
+
+#+BEGIN_SRC bash
+  sysctl hu. disknames
+  # hw.disknames=sd0: e44d0d9d0890f6b?,cd0:,rd0: bceeec6095a56dd3
+#+END_SRC
+
+
+*** Create device special files
+
+If you have more than one disk listed (e.g. =sd0, sd1=), then you need to confirm which disk is the =OpenBSD= one, you have to run =fdisk sd0= and =fdisk sd1= to print the SSD partition tables.
+
+Before using =fdisk sd0=, you must create the device file, as =/dev/sd0= and =/dev/sd1= don't exist in shell mode yet.
+
+Here is the way to create them:
+
+#+BEGIN_SRC bash
+  cd /dev
+  sh MAKEDEV sd0
+  sh MAKEDEV sd1
+#+END_SRC
+
+After that, =/dev/sd0= and =/dev/sd1= will be available.
+
+So, here is the output of =fdisk sd0= for =UEFI, GPT= pattern:
+
+#+BEGIN_SRC bash
+  fdisk sd0
+
+  # Disk: sd0
+  # #: type
+  # -------------------------------------------
+  # 0: EFI Sys
+  # 1: OpenBSD
+#+END_SRC
+
+So, here is the output of =fdisk sd0= for =MRB= pattern:
+
+#+BEGIN_SRC bash
+  fdisk sd0
+
+  # Disk: sd0
+  #  #: id
+  # -------------------------------------------
+  # *0: 0C ..... Win95 FAT32L
+  #  1: 00 ..... Unused
+  #  2: 00 ..... Unused
+  #  3: A6 ..... OpenBSD
+#+END_SRC
+
+That means =sd0= is the =OpenBSD= SSD.
+
+
+*** Mount the =/= partition and =/usr= partition
+
+Now, you need to mount the related partitions before running =config -ef /bsd= to change the boot config.
+
+You can run =disklabel -p G sd0= to print out all partitions (=-p G= means use =GB= as size unit).
+
+Here is my =OpenBSD= partitions:
+
+#+BEGIN_SRC bash
+  a:              1.G               64   4.2BSD   2048 16384     1 # /
+  b:            64.0G          2097216    swap
+  c:           921.5G                0  unused
+  d:             4.0G        XXXXXXXXX  4.2BSD   2048 16384     1 # /tmp
+  e:           119.8G        XXXXXXXXX  4.2BSD   2048 16384     1 # /var
+  f:              30G        XXXXXXXXX  4.2BSD   2048 16384     1 # /usr
+  g:             1.0G        XXXXXXXXX  4.2BSD   2048 16384     1 # /usr/X11R6
+  h:            20.0G        XXXXXXXXX  4.2BSD   2048 16384     1 # /usr/local
+  i:             0.3G               64  MSDOS
+  j:             3.0G        XXXXXXXXX  4.2BSD   2048 16384     1 # /usr/src
+  k:             6.0G        XXXXXXXXX  4.2BSD   2048 16384     1 # /usr/obj
+  l:           300.0G        XXXXXXXXX  4.2BSD   2048 16384     1 # /home
+#+END_SRC
+
+That's why I mount them like this:
+
+#+BEGIN_SRC bash
+  #
+  # Root
+  #
+  mount /dev/sd0a /mnt
+
+  #
+  # You need this partition to run the binaries
+  # that are stored in `/usr/bin`
+  #
+  mount /dev/sd0f /mnt/usr
+
+  #
+  # You need those partitions to run `config -ef /bsd`
+  #
+  mount /dev/sd0d /mnt/tmp
+  mount /dev/sd0e /mnt/var
+#+END_SRC
+
+
+After that, run =mount= to confirm all partitions have been mounted correctly:
+
+#+BEGIN_SRC bash
+  mount
+
+  # /dev/rd0a on / types ffs (Local)
+  # /dev/sd1a on /mnt types ffs (Local)
+  # /dev/sd1f on /mnt/usr types ffs (Local)
+  # /dev/sd1d on /mnt/tmp types ffs (Local)
+  # /dev/sd1e on /mnt/var types ffs (Local)
+#+END_SRC
+
+
+*** =chroot= into =/mnt=
+
+#+BEGIN_SRC bash
+  chroot /mnt
+
+  #
+  # Run `uname -a` to confirm that I'm in the installed OpenBSD!!!
+  #
+  /usr/bin/uname -a
+  OpenBSD 7.5 RAMDISK_CD+76 amd64
+#+END_SRC
+
+
+*** Change boot configuration
+
+The kernel configuration file to overwrite
+
+#+BEGIN_SRC bash
+  ls -lht /bsd
+
+  #-rwx------ 1 root wheel 25.3M /bsd
+#+END_SRC
+
+
+#+BEGIN_SRC bash
+  #
+  # -e: Allows the modification of kernel device configuration
+  # -f: Overwrite the infile kernel binary with the modified kernel
+  #
+  config -ef /bsd
+
+  ukc>
+#+END_SRC
+
+In that =ukc>= prompt, you're able to run all commands that available in the =boot -c=, here is the man page: https://man.openbsd.org/boot_config.8
+
+
+Now, you can do something like below as an example when needed:
+
+#+BEGIN_SRC bash
+  ukc> disable uhidev
+  # 310 uhidev* disabled
+
+  ukc> disable uhub
+  # 301 uhub* disabled
+  # 302 uhub* disabled
+
+  #
+  # After this, `efifb0 at mainbus0: 3840x2160, 32bpp` comes back
+  #
+  ukc> disable inteldrm
+
+  #
+  # Disable the following `acpi` related, but you can't disable `acpi`,
+  # as on modern machines, it's all but required. The controller for
+  # your hard drive didn't attach, so the kernel was unable to find
+  # your root device!!!
+  #
+  ukc> disable acpivideo
+  ukc> disable acpibtn
+  ukc> disable acpiac
+  ukc> disable acpibat
+  ukc> disable acpihid
+  ukc> disable acpipwrres
+  ukc> disable acpicpu
+
+  #
+  # Run `quit` to save and exit `config`
+  #
+  ukc> quit
+#+END_SRC
+
+
+*** Exit and reboot
+
+#+BEGIN_SRC bash
+  #
+  # Exit `chroot`
+  #
+  exit
+
+  #
+  # Sync all changes to disk
+  #
+  sync
+
+  #
+  # Umount all partitions
+  #
+  umount /mnt/tmp
+  umount /mnt/var
+  umount /mnt/usr
+  umount /mnt
+#+END_SRC
+
+
+Then, reboot.
+
