@@ -1140,13 +1140,116 @@ Now, reboot to take effect.
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
   rustup component add rust-analyzer
+
+  cargo install cargo-cache du-dust
 #+END_SRC
 
 Then relogin to take effects.
 
 
-*** Install =llvm= and =clang=
+*** Install =llvm= and =clang= and =cmake=
 
 #+BEGIN_SRC bash
-  doas pacman --sync --refresh base-devel clang llvm 
+  doas pacman --sync --refresh base-devel clang llvm cmake
+#+END_SRC
+
+
+*** Install =paru=
+  
+=Paru= is the help of AUR that written by =Rust= based on yay.
+
+How to enable =AUR= installation:
+
+If you use =doas=, then you HAVE TO install =sudo=, otherwise, you can't install =paru=!!!
+
+#+BEGIN_SRC bash
+  # Switch to root
+  su
+
+  # Install sudo
+  pacman --sync --refresh sudo
+
+  # Allow `wheel` group to use `sudo`
+  visudo
+
+  # Exit root
+  exit
+#+END_SRC
+
+
+Install paru:
+
+#+BEGIN_SRC bash
+  mkdir ~/temp && cd ~/temp
+
+  sudo pacman -S --needed git base-devel
+  git clone https://aur.archlinux.org/paru.git
+  cd paru
+
+  # Choose '2', install `cargo` via `rustup` for a small download size!!!
+  makepkg -si
+
+
+  # If exit with error, then plz make sure to added the latest stable toolchain
+  rustup toolchain add stable
+
+  # Or if you've already install the stable toolchain, then update it
+  rustup update
+
+
+  cd ~/temp && rm -rf paru
+#+END_SRC
+
+Make sure to disable the wheel rule by re-running =doas visudo=, as I use =doas= instead of =sudo=!!!
+
+
+*** Install =hare=
+
+**** Instal via =paru=
+
+You have to enable =wheel= group by doing =doas visudo=, as =paru= use =sudo=!!!
+
+#+BEGIN_SRC bash
+  paru --sync --refresh hare-git harec-git 
+#+END_SRC
+
+After installation, disable =wheel= group by doing =doas visudo= again!!!
+
+
+**** Compile from source
+
+#+BEGIN_SRC bash
+  #
+  # install compiler backend
+  #
+  doas pacman --sync --refresh qbe
+
+
+  #
+  # Install the compiler frontend.
+  #
+  cd ~/temp
+  git clone https://git.sr.ht/~sircmpwn/harec && cd harec
+  cp -rvf configs/linux.mk config.mk
+  doas make install
+
+  #
+  # Install the standard library and tools
+  #
+  cd ~/temp
+  git clone https://git.sr.ht/~sircmpwn/hare && cd hare
+  cp -rvf configs/linux.mk config.mk
+  doas make install
+#+END_SRC
+
+
+*** Clean cache
+
+#+BEGIN_SRC bash
+  doas pacman -Scc
+
+  paru -Scc
+  rm -rf ~/.cache/paru/clone/*
+
+  cargo cache --autoclean
 #+END_SRC

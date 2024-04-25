@@ -705,6 +705,15 @@ After that, you will see the new RSA key there:
   # -rw-------  1 wison wison  3.3K Mar 22 14:45 id_rsa
 #+END_SRC
 
+
+Add your VM's ip and name into =/etc/hosts=:
+
+#+BEGIN_SRC conf
+  192.168.2.10    my-arch
+  192.168.2.20    my-openbsd
+#+END_SRC
+
+
 And then, you need to ssh copy =~/.ssh/id_rsa.pub= into VM's =~/.ssh/authorized_keys=:
 
 #+BEGIN_SRC bash
