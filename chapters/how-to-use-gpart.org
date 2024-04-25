@@ -53,8 +53,25 @@ For example, you're working on the =/dev/da0= disk:
   #
   # `-i`: Specify partition index, start from `1`
   #
-  gpart add -t freebsd-ufs -l data da0
+  doas gpart add -t freebsd-ufs -l data da0
 #+END_SRC
   
 
 If you did something wrong, you can delete the partition by running =gpart delete -i INDEX= or resize it by running =gpart resize -i INDEX -s SIZE=.
+
+
+** Format UFS2 partition
+
+#+BEGIN_SRC bash
+  doas newfs /dev/da0p1 
+
+  #
+  # Now, you can mount and perform read/write
+  #
+  doas mount /dev/da0p1 /mnt/temp/
+
+  #
+  # Sync and umount
+  #
+  doas sync && doas umount /mnt/temp
+#+END_SRC
