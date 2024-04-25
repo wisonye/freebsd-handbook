@@ -371,6 +371,79 @@ Confirm it has been mounted correctly:
 #+END_SRC
 
 
+*** Assign static IP to VM NIC if you're using =internal VM switch=
+
+If your VM is connecting to the =vm-internal= switch, the arch VM won't be assigned to an IP address, as you don't have =DHCP= service setup by default. Then, you have to assign the static IP manually.
+
+#+BEGIN_SRC bash
+  #
+  # List the VM NIC
+  #
+  ip add
+  # 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+  #     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+  #     inet 127.0.0.1/8 scope host lo
+  #        valid_lft forever preferred_lft forever
+  #     inet6 ::1/128 scope host noprefixroute
+  #        valid_lft forever preferred_lft forever
+  2: enp0s5: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+  #     link/ether 58:9c:fc:00:fc:7f brd ff:ff:ff:ff:ff:ff
+  #     inet 192.168.2.10/24 scope global enp0s5
+  #        valid_lft forever preferred_lft forever
+  #     inet6 fe80::5a9c:fcff:fe00:fc7f/64 scope link proto kernel_ll
+  #        valid_lft forever preferred_lft forever
+#+END_SRC
+
+That means =enp0s5= is the ethernet NIC, assgin the static IP to it like this:
+
+Make sure to change the network ID to match your =vm-internal= switch network ID!!!
+
+#+BEGIN_SRC bash
+  ip address add 192.168.2.10/24 dev enp0s5
+#+END_SRC
+
+If your =PF= setup correctly, now, the =ping= should work between host and VM.
+
+
+Then, you need to add the default router to the routing table:
+
+#+BEGIN_SRC bash
+  #
+  # Add the default gateway to your host's `vm-internal` switch IP
+  #
+  ip route add default via 192.168.2.1 dev enp0s5
+
+  
+  #
+  # Print the routing table
+  #
+  ip route show
+  # default via 192.168.2.1 dev enp0s5
+  # 192.168.2.0/24 dev enp0s5 proto kernel scope link src 192.168.2.10 
+#+END_SRC
+
+
+Now, you should able to ping outside:
+
+#+BEGIN_SRC bash
+  #
+  # `vm-internal` switch NIC
+  #
+  ping 192.168.2.1
+
+  #
+  # Your home router
+  #
+  ping 192.168.1.X
+
+  #
+  # Outside world
+  #
+  ping google.co.nz
+#+END_SRC
+
+
+
 *** Install necessary packages and create =fstab=
 
 #+BEGIN_SRC bash
@@ -634,6 +707,16 @@ Right now, NIC should work:
 #+END_SRC
 
 
+For static IP, you should add your host default router to =/etc/resolv.conf= as the default DNS name server:
+
+#+BEGIN_SRC conf
+  # Resolver configuration file.
+  # See resolv.conf(5) for details.
+  nameserver 192.168.1.200
+#+END_SRC
+
+
+
 **** Save the grub parameters for later use
 
 #+BEGIN_SRC bash
@@ -647,8 +730,7 @@ Search =menuentry 'Arch Linux'=, then you should see the following settings:
   ### END /etc/grub.d/00_header ###
 
   ### BEGIN /etc/grub.d/10_linux ###
-  menuentry 'Arch Linux' --class arch --class gnu-linux --class gnu --class os $mee
-  nuentry_id_option 'gnulinux-simple-27a6a3e7-44cd-4fe1-9a0d-c0e5abeebb09' {
+  menuentry 'Arch Linux' --class arch --class gnu-linux --class gnu --class os $menuentry_id_option 'gnulinux-simple-27a6a3e7-44cd-4fe1-9a0d-c0e5abeebb09' {
           load_video
           set gfxpayload=keep
           insmod gzio
@@ -656,8 +738,7 @@ Search =menuentry 'Arch Linux'=, then you should see the following settings:
           insmod fat
           search --no-floppy --fs-uuid --set=root 1706-1977
           echo    'Loading Linux linux-lts ...'
-          linux   /vmlinuz-linux-lts root=UUID=27a6a3e7-44cd-4fe1-9a0d-c0e5abeebb00
-  9 rw  loglevel=3 quiet
+          linux   /vmlinuz-linux-lts root=UUID=27a6a3e7-44cd-4fe1-9a0d-c0e5abeebb09 rw  loglevel=3 quiet
           echo    'Loading initial ramdisk ...'
           initrd  /intel-ucode.img /initramfs-linux-lts.img
   }
@@ -707,12 +788,16 @@ Remember that you've already saved the installed grub configuration settings abo
 It contains 2 important boot settings like below:
 
 #+BEGIN_SRC bash
-  linux   /vmlinuz-linux-lts root=UUID=27a6a3e7-44cd-4fe1-9a0d-c0e5abeebb00 9 rw  loglevel=3 quiet
+  linux   /vmlinuz-linux-lts root=UUID=27a6a3e7-44cd-4fe1-9a0d-c0e5abeebb09 rw  loglevel=3 quiet
   initrd  /intel-ucode.img /initramfs-linux-lts.img
 #+END_SRC
 
 
 Now. you need to add them to VM's configuration file like below:
+
+Make sure they start with =grub_run= not =grub_install=!!!!
+Make sure they start with =grub_run= not =grub_install=!!!!
+Make sure they start with =grub_run= not =grub_install=!!!!
 
 #+BEGIN_SRC bash
   grub_run0="linux   /vmlinuz-linux-lts root=UUID=27a6a3e7-44cd-4fe1-9a0d-c0e5abeebb09 rw  loglevel=3 quiet"
@@ -752,6 +837,15 @@ If you see the following error:
 Then you can use the ISO to reboot and fix the kernel like this:
 
 *** Reboot by ISO
+
+First, you need to change back the configure to be able to boot via ISO, run =doas vm configure my-arch= and change back to the following settings:
+
+#+BEGIN_SRC conf
+  grub_install0="linux /arch/boot/x86_64/vmlinuz-linux archisobasedir=arch archisolabel=ARCH_202404 ro"
+  grub_install1="initrd /arch/boot/x86_64/initramfs-linux.img"
+#+END_SRC
+
+Save and restart the VM via ISO.
 
 #+BEGIN_SRC bash
   doas vm install -f my-arch archlinux-2024.03.01-x86_64.iso 
