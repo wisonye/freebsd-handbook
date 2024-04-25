@@ -1,0 +1,60 @@
+* How to use =gpart= to partition disk
+
+** List partitions
+
+#+BEGIN_SRC bash
+  #
+  # List all disks' partitions
+  #
+  gpart show
+  # =>       40  250085296  da0  GPT  (119G)
+  #          40  250085296    1  freebsd-ufs  (119G)
+
+  #
+  # `-l` show disklabel if supported
+  #
+  gpart show -l
+  # =>       40  250085296  da0  GPT  (119G)
+  #          40  250085296    1  data  (119G)
+
+  #
+  # List the given disk's partitions,
+  # `/dev/` prefix is an option
+  #
+  gpart show da0
+  gpart show /dev/da0
+#+END_SRC
+
+
+** Create partitions from scratch
+
+For example, you're working on the =/dev/da0= disk:
+
+#+BEGIN_SRC bash
+  #
+  # Force to destroy the existing partition table even it's NOT empty!!!
+  #
+  doas gpart destroy -F da0
+
+  #
+  # Create new GPT partition table
+  #
+  doas gpart create -s GPT da0
+
+  #
+  # Create new UFS/UFS2 FreeBSD partition (use all available spaces)
+  #
+  # `-t`: Specify partition type, where to find the supported partition types?
+  #       `man gpart` and search `PARTITION TYPES`
+  #
+  # `-l`: Specify disklabel if partition scheme supported
+  #
+  # `-s`: Specify partition size, e.g: `200m` `200g`
+  #
+  # `-i`: Specify partition index, start from `1`
+  #
+  gpart add -t freebsd-ufs -l data da0
+#+END_SRC
+  
+
+If you did something wrong, you can delete the partition by running =gpart delete -i INDEX= or resize it by running =gpart resize -i INDEX -s SIZE=.
