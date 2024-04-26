@@ -514,14 +514,24 @@ Edit =/etc/myname=
 
 Edit =/etc/resolv.conf=
 
+#+BEGIN_SRC conf
+  lookup file bind
+  nameserver 8.8.8.8
+#+END_SRC
+
 
 **** Gateway
 
-Add the following IP address to =/etc/mygate.conf= for the defualt gateway:
+Add the following IP address to =/etc/mygate= for the defualt gateway:
 
-#+BEGIN_SRC bash
+#+BEGIN_SRC conf
+  #
+  # Set to your home router
+  #
   192.168.2.1
 #+END_SRC
+
+=router= uses it as a default gateway route!!!
 
 
 **** Network interfaces
@@ -553,7 +563,7 @@ If you modifya any of above files, run this command to take effect immediately w
 #+END_SRC
 
 
-*** Configure PKG mirror and update
+*** Configure PKG mirror and update system
 
 You can find your nearest mirror from [[https://www.openbsd.org/ftp.html][here]], then export the =PKG_PATH= env variable to your mirror URL:
 
@@ -562,11 +572,24 @@ You can find your nearest mirror from [[https://www.openbsd.org/ftp.html][here]]
   # Make sure to Replace the `7.6` and `amd64` to your OpenBSD version and
   # your CPU architecture!!!
   #
-  export PKG_PATH=https://mirror.fsmg.org.nz/pub/OpenBSD/7.4/packages/amd64/
+  export PKG_PATH=https://mirror.fsmg.org.nz/pub/OpenBSD/7.5/packages/amd64/
 #+END_SRC
 
 
-After that, run the following command to update all installed packages:
+**** Install system patch
+
+#+BEGIN_SRC bash
+  doas syspatch
+
+  # Get/Verify syspatch75-001_xserver... 100% |*************************************************************************|  4303 KB    00:00
+  # Installing patch 001_xserver
+  # Errata can be reviewed under /var/syspatch
+#+END_SRC
+
+Btw, =syspatch= only for =release=, it doesn't work for available in =current snapshot=, as =current snapshot= is the latest developer branch which there is NO any system patch in concept.
+
+
+**** Update all installed packages:
 
 #+BEGIN_SRC bash
   #
@@ -580,10 +603,19 @@ After that, run the following command to update all installed packages:
 #+END_SRC
 
 
+*** Update firmware drivers
+
+#+BEGIN_SRC bash
+  doas fw_update -av
+#+END_SRC
+
+Reboot to take affect.
+
+
 *** Install everything I need
 
 #+BEGIN_SRC bash
-  doas pkg_add git delta neovim py3-neovim bat ripgrep lf fish neofetch emacs-29.1p0-no_x11 cmake
+  doas pkg_add git delta neovim py3-neovim bat ripgrep lf fish neofetch emacs cmake
 #+END_SRC
 
 
@@ -637,12 +669,9 @@ Re-login to take effect.
 *** Install =Rust= when needed
 
 #+BEGIN_SRC bash
-  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-
-  rustup component add rust-analyzer
+  doas pkg_add rust rust-analyzer rust-clippy rust-gdb rust-rust-fmt rust-src
+  cargo install du-dust cargo-cache
 #+END_SRC
-
-Then relogin to take effects.
 
 
 *** Install new version of =llvm=
@@ -675,4 +704,29 @@ Now, you're using the newer version of =llvm=:
   # Target: amd64-unknown-openbsd7.4
   # Thread model: posix
   # InstalledDir: /usr/local/llvm16/bin
+#+END_SRC
+
+
+*** Install =clangd=
+
+By default, =llvm= package doesn't include =clangd=, you need to install this package:
+
+#+BEGIN_SRC bash
+  doas pkg_add clang-tools-extra
+#+END_SRC
+
+But the point is that, that =clangd= should be the older version:
+
+#+BEGIN_SRC bash
+  clangd --version
+  # clangd version 13.0.0
+  # Features: unix
+  # Platform: amd64-unknown-openbsd7.5 
+#+END_SRC
+
+
+*** Install =hare=
+
+#+BEGIN_SRC bash
+  doas pkg_add hare harec
 #+END_SRC
