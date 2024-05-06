@@ -3,6 +3,7 @@
 ** [[file:chapters/installation.org][Install FreeBSD]]
 ** [[file:chapters/ethernet.org][Ethernet]]
 ** [[file:chapters/wifi.org][WIFI]]
+** [[file:chapters/passwordless-ssh.org][Passwordless SSH]]
 ** [[file:chapters/package_management.org][Package management]]
 ** [[file:chapters/install-basic-tools-and-setup.org][Install basic tools and setup]]
 ** [[file:chapters/install-gpu-drivers.org][Install GPU drivers]]
