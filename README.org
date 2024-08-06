@@ -32,7 +32,6 @@
 ** [[file:chapters/bootloader.org][Bootloader]]
 ** Software installation
 *** [[file:chapters/file-search.org][File search and full-text search]]
-*** [[file:chapters/fonts.org][fonts]]
 *** [[file:chapters/neovim.org][Neovim]]
 *** [[file:chapters/emacs.org][Emacs]]
 *** [[file:chapters/mpv.org][mpv]]
@@ -41,6 +40,7 @@
 *** [[file:chapters/ungoogled-chromium.org][Ungoogled-Chromium]]
 *** [[file:chapters/google_cloud_sdk.org][Google cloud SDK]]
 *** [[file:chapters/lf.org][Lf]]
+*** [[file:chapters/brightness-control.org][Brightness control]]
 *** [[file:chapters/bhyve.org][Bhyve virtualization]]
 **** [[file:chapters/install-arch-linux-guest.org][Install Arch linux guest]]
 **** [[file:chapters/install-openbsd-guest.org][Install OpenBSD guest]]

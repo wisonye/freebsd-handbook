@@ -1,0 +1,18 @@
+* Brightness control
+
+You need to neable =acpi_vido= driver by running the following command:
+
+#+BEGIN_SRC bash
+  # Add to `kld_list` in `/etc/rc.conf`
+  doas sysrc kld_list+=acpi_video
+#+END_SRC
+
+Then you're able to use =backlight= to make changes:
+
+#+BEGIN_SRC bash
+  # Increase 10%
+  backlight + 10
+
+  # Decrease 10%
+  backlight - 10
+#+END_SRC

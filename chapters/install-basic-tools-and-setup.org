@@ -92,3 +92,29 @@ Relogin to take effect.
 
 Then relogin to take effects.
 
+
+
+** Chinese fonts
+
+*** SourceCodePro
+
+#+BEGIN_SRC bash
+  # Install nerd font version
+  cd temp
+  curl -OL https://github.com/ryanoasis/nerd-fonts/releases/latest/download/SourceCodePro.tar.xz
+  tar xvf SourceCodePro.tar.xz
+  rm -rf  SourceCodePro.tar.xz
+
+  # Update font cache
+  sudo mkdir /usr/local/share/fonts/source-code-pro-nerd-fonts
+  sudo mv ./*.ttf /usr/local/share/fonts/source-code-pro-nerd-fonts/
+  sudo fc-cache -fv
+  fc-cache -fv
+#+END_SRC
+
+
+*** Chinese fonts
+
+#+BEGIN_SRC bash
+  doas pkg install chinese/sourcehansans-sc-otf chinese/sourcehansans-tc-otf
+#+END_SRC
