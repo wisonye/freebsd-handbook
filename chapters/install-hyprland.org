@@ -3,7 +3,7 @@
 ** Install everything I need
 
 #+BEGIN_SRC bash
-  doas pkg install tree git bat ripgrep procs htop btop fastfetch fzf fish neovim py39-pynvim emacs-devel aspell aspell-ispell en-aspell lf alacritty tmux dunst pavucontrol mpv dbus hyprland qt6-wayland wl-clipboard waybar swaylock-effects
+  doas pkg install tree git bat ripgrep procs htop btop fastfetch fzf fish neovim py39-pynvim emacs-devel aspell aspell-ispell en-aspell lf alacritty tmux dunst pavucontrol mpv dbus hyprland qt6-wayland wl-clipboard waybar swaylock-effects yt-dlp grim slurp nsxiv pavucontrol pamixer
 #+END_SRC
 
 
@@ -257,10 +257,20 @@ After a reboot, use =mixer= to make sure that's the default audio output:
 
 ** Wallpaper util
 
+*** SWWW
+
 #+BEGIN_SRC bash
   git clone --depth=1 https://github.com/LGFae/swww.git
   cd swww
+  doas pkg install pkgconf
   cargo build --release
   mv target/release/{swww, swww-daemon} ~/my-shell
   cd .. && rm -rf swww
+#+END_SRC
+
+
+*** Pywal
+
+#+BEGIN_SRC bash
+ doas pkg install graphics/pywal 
 #+END_SRC
