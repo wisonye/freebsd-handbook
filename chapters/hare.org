@@ -1,0 +1,51 @@
+* Hare
+
+** Install =hare=
+
+*** Instal via =pkg=
+
+#+BEGIN_SRC bash
+  doas pkg install hare harec
+#+END_SRC
+
+
+*** Compile from source
+
+#+BEGIN_SRC bash
+  #
+  # install compiler backend
+  #
+  doas pkg install qbe scdoc
+
+
+  #
+  # Install the compiler frontend.
+  #
+  cd ~/temp
+  git clone --depth=1 https://git.sr.ht/~sircmpwn/harec && cd harec
+  cp -rvf configs/freebsd.mk config.mk
+  make
+  doas make install
+
+  #
+  # Install the standard library and tools
+  #
+  cd ~/temp
+  git clone --depth=1 https://git.sr.ht/~sircmpwn/hare && cd hare
+  cp -rvf configs/freebsd.mk config.mk
+
+  #
+  # Important!!!
+  # Important!!!
+  # Important!!!
+  #
+  # If you're on AARCH64 (e.g. Raspberry PI), then you need to open `config.mk`
+  # and change the `ARCH` setting like this before compiling:
+  #
+  # ARCH = aarch64
+  #
+
+  make
+  doas make install
+#+END_SRC
+
