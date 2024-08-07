@@ -29,7 +29,7 @@ Add the following settings to =doas.conf=:
 ** Install everything I need
 
 #+BEGIN_SRC bash
-  doas pkg install tree git git-delta bat ripgrep procs htop btop fastfetch fzf fish neovim py39-pynvim tmux emacs-devel aspell aspell-ispell en-aspell lf
+  doas pkg install tree git git-delta bat ripgrep procs htop btop fastfetch fzf fish neovim py39-pynvim unzip icu npm cmake tmux emacs-devel aspell aspell-ispell en-aspell lf
 #+END_SRC
 
 =emacs-devel= is latest developement version, it enables =NATIVECOMP= feature!
@@ -42,6 +42,83 @@ Add the following settings to =doas.conf=:
 #+END_SRC
 
 Relogin to take effect.
+
+
+** Neovim config related
+
+*** Install dependencies
+
+Some neovim plugins need to use =xdg-open= program, and =telescope-fzf-native.vim= needs =cmake=, =mason= plugin needs =unzip icu npm=:
+
+#+BEGIN_SRC bash
+  doas pkg install xdg-utils cmake unzip icu npm
+#+END_SRC
+
+
+*** Make sure =~/.npm= is owned by you
+
+Before running =vim= for the first time, make to sure check whether =~/.npm= is owned by you or not, if no, then you will fail to install all LSP server and you can see the following errors in =:MasonLog=:
+
+#+BEGIN_SRC bash
+  [ERROR Tue Aug  6 16:21:01 2024] ...e/nvim/lazy/mason.nvim/lua/mason-core/installer/init.lua:249: Installation failed for Package(name=typescript-language-server) error=spawn: npm failed with exit code - and signal -. npm is not executable
+#+END_SRC
+
+That means =~/.npm= owns by =root=! You can remove it and try again:)
+
+
+*** =clangd= LSP server
+
+=Mason= can't install =clangd=, you need to installl by yourself:
+
+#+BEGIN_SRC bash
+  doas pkg install llvm18
+#+END_SRC
+
+Then put =/usr/local/llvm18/bin= into your =$PATH=
+
+
+*** =lua-ls= LSP server
+
+=Mason= can't install =lua-ls=, you need to installl by yourself:
+
+#+BEGIN_SRC bash
+  # Install `ninja`
+  doas pkg install ninja
+
+  # Clone repo
+  git clone --depth=1 https://github.com/LuaLS/lua-language-server
+
+  # Disable unit test
+  cd lua-language-server
+  :> 3rd/bee.lua/test/test.lua
+  :> test.lua
+
+  # Compile
+  ./make.sh
+#+END_SRC
+
+Then put =lua-language-server/bin= to your =$PATH=
+
+
+*** =zls= LSP server
+
+=Mason= can't install =zls=, you need to installl by yourself:
+
+First you need to download and install the lastest zig release from [[here][https://ziglang.org/download/]]
+
+#+BEGIN_SRC bash
+  #
+  # Clone `zls` repo with the SAME zig release TAG you downloaded!!!
+  # For example, `0.13.0`
+  #
+  git clone --depth 1 --branch 0.13.0 https://github.com/zigtools/zls
+
+  # Compile
+  cd zls
+  zig build -Doptimize=ReleaseSafe
+#+END_SRC
+
+Then move =zig-out/bin/zls= to your =$PATH= directory.
 
 
 ** Create and copy GIT SSH key
