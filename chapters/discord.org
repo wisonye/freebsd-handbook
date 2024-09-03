@@ -1,0 +1,7 @@
+* Discord
+
+[[https://github.com/SrWither/DiscordBSD][DiscordBSD]]
+
+[[https://github.com/SrWither/DiscordBSD][Download releases]]
+
+Unzip and run ~install.sh~
