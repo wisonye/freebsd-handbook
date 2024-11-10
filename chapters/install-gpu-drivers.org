@@ -25,6 +25,13 @@ The =Direct Rendering Manager (DRM)= is a subsystem of the Linux kernel responsi
 And then add the following settings to ~/etc/rc.conf~ to load GPU driver module:
 
 #+BEGIN_SRC text
+  kld_list="i915kms"
+  
+#+END_SRC
+
+Or run the following command instead if you don't want to edit =/etc/rc.conf=:
+
+#+BEGIN_SRC bash
   sysrc kld_list+=i915kms  
 #+END_SRC
 
