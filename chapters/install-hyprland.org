@@ -116,6 +116,15 @@ The =seatd= daemon helps manage access to shared system devices for non-root use
 #+END_SRC
 
 
+** Enable =dbus= service
+
+#+BEGIN_SRC bash
+  doas sysrc dbus_enable=YES
+
+  doas service dbus onestart
+#+END_SRC
+
+
 ** How to start and debug if it crashes
 
 *** Start =Hyprland=
