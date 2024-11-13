@@ -26,6 +26,13 @@ Add the following settings to =doas.conf=:
 #+END_SRC
 
 
+Make it more safe:
+
+#+BEGIN_SRC bash
+  doas chmod 400 /usr/local/etc/doas.conf
+#+END_SRC
+
+
 ** Install everything I need
 
 #+BEGIN_SRC bash
@@ -71,6 +78,9 @@ That means =~/.npm= owns by =root=! You can remove it and try again:)
 =Mason= can't install =clangd=, you need to installl by yourself:
 
 #+BEGIN_SRC bash
+  #
+  # `doas pkg install zig` needs `llvm18`!!!
+  #
   doas pkg install llvm18
 #+END_SRC
 
@@ -83,12 +93,14 @@ Then put =/usr/local/llvm18/bin= into your =$PATH=
 
 #+BEGIN_SRC bash
   # Install `ninja`
-  doas pkg install ninja
+  doas pkg install ninja libinotify
 
   # Clone repo
   git clone --depth=1 https://github.com/LuaLS/lua-language-server
 
+  #
   # Disable unit test
+  #
   cd lua-language-server
   :> 3rd/bee.lua/test/test.lua
   :> test.lua
@@ -97,18 +109,30 @@ Then put =/usr/local/llvm18/bin= into your =$PATH=
   ./make.sh
 #+END_SRC
 
-Then put =lua-language-server/bin= to your =$PATH=
+The ~:> 3rd/bee.lua/test/test.lua~ command should fail on the first time, as it doesn't exists until you run ~./make.sh~ (to pull the repo). That's why you have to run it again after the failed ~./make.sh~!!!
+
+After done with the compilation, put =lua-language-server/bin= to your =$PATH=
 
 
 *** =zls= LSP server
 
 =Mason= can't install =zls=, you need to installl by yourself:
 
-First you need to download and install the lastest zig release from [[here][https://ziglang.org/download/]]
+First you need to download and install the lastest zig release from [[here][https://ziglang.org/download/]] or install via =pkg=:
+
+#+BEGIN_SRC bash
+  doas pkg install zig
+#+END_SRC
+
 
 #+BEGIN_SRC bash
   #
-  # Clone `zls` repo with the SAME zig release TAG you downloaded!!!
+  # First you need to print the installed zig version before cloning `zls`
+  #
+  pkg info zig
+
+  #
+  # Clone `zls` repo with the SAME zig release TAG you installed!!!
   # For example, `0.13.0`
   #
   git clone --depth 1 --branch 0.13.0 https://github.com/zigtools/zls
