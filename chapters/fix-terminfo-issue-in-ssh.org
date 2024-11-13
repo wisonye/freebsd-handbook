@@ -1,0 +1,29 @@
+* Fix terminal type issue in SSH
+
+If you're trying to open =vi= via =SSH=, you might see the following error and fail to open =vi=:
+
+#+BEGIN_SRC bash
+  vi: alacritty: unknown terminal type 
+#+END_SRC
+
+
+That's because the newly installed =FreeBSD= doesn't have your host mahcine =TERM= terminfo settings yet!
+
+You need to install the expected =terminfo= on the =FreeBSD=. For example, your host machine use ~alacritty~ terminfo:
+
+
+#+BEGIN_SRC bash
+  echo $TERM
+
+  # alacritty
+#+END_SRC
+
+
+Here is what you need to do on the =FreeBSD=:
+
+#+BEGIN_SRC bash
+  #
+  # Make sure you're `root`!
+  #
+  curl -sSL https://raw.githubusercontent.com/alacritty/alacritty/master/extra/alacritty.info | tic -x -
+#+END_SRC
