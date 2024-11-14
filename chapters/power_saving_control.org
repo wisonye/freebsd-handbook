@@ -1,4 +1,4 @@
-* Power Saving Control
+* Suspend and power saving control
 
 ** Enable =powerd= daemon
 
@@ -10,8 +10,7 @@
 
 Reboot or restart service by running =doas service powerd restart=
 
-
-** Flags description:
+Here is the flags description:
 
 =-a=: Selects the mode to use while on AC power.
 
@@ -23,3 +22,73 @@ Reboot or restart service by running =doas service powerd restart=
 
 =-N=: Treat "nice" time as idle for the purpose of load calculation; i.e., do not increase the CPU frequency if the CPU is only busy with "nice" processes.
 
+
+** Suspend manually
+
+You can do that by =apm=:
+
+#+BEGIN_SRC bash
+  #
+  # Equal to `doas apm -z` or `doas acpiconf -s 3`
+  #
+  doas zzz
+#+END_SRC
+
+
+Or by =apm= or =acpiconf= directly, as =zzz= calls them internally:
+
+#+BEGIN_SRC bash
+  doas apm -z
+
+  # or
+  doas acpiconf -s 3
+#+END_SRC
+
+
+** Query battery or AC status
+
+#+BEGIN_SRC bash
+  apm
+
+  # APM version: 1.2
+  # APM Management: Disabled
+  # AC Line status: off-line
+  # Battery Status: high
+  # Remaining battery life: 94%
+  # Remaining battery time:  5:43:00
+  # Number of batteries: 1
+  # Battery 0:
+  #         Battery Status: high
+  #         Remaining battery life: 94%
+  #         Remaining battery time:  5:43:00
+#+END_SRC
+
+
+** List battery information
+
+#+BEGIN_SRC bash
+  acpiconf -i 0
+
+  # Design capacity:        54060 mWh
+  # Last full capacity:     41910 mWh
+  # Technology:             secondary (rechargeable)
+  # Battery Swappable Capability:   Non-swappable
+  # Design voltage:         15360 mV
+  # Capacity (warn):        2095 mWh
+  # Capacity (low):         200 mWh
+  # Cycle Count:            301
+  # Measurement Accuracy:   95%
+  # Max Average Interval:   1000 ms
+  # Min Average Interval:   500 ms
+  # Low/warn granularity:   -1 mWh
+  # Warn/full granularity:  -1 mWh
+  # Model number:           01AV475
+  # Serial number:           5001
+  # Type:                   LiP
+  # OEM info:               Celxpert
+  # State:                  discharging
+  # Remaining capacity:     94%
+  # Remaining time:         6:00
+  # Present rate:           6592 mW
+  # Present voltage:        15962 mV 
+#+END_SRC
