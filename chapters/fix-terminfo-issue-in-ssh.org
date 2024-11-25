@@ -19,11 +19,23 @@ You need to install the expected =terminfo= on the =FreeBSD=. For example, your 
 #+END_SRC
 
 
+Temporary quick fix:
+
+#+BEGIN_SRC bash
+  export TERM=xterm
+#+END_SRC
+
+
+Permanent fix;
+
 Here is what you need to do on the =FreeBSD=:
 
 #+BEGIN_SRC bash
+  doas pkg install alacritty
+
   #
   # Make sure you're `root`!
   #
+  su
   curl -sSL https://raw.githubusercontent.com/alacritty/alacritty/master/extra/alacritty.info | tic -x -
 #+END_SRC
