@@ -3,7 +3,7 @@
 ** Install everything I need
 
 #+BEGIN_SRC bash
-  doas pkg install tree git bat ripgrep procs htop btop fastfetch fzf fish neovim py39-pynvim emacs-devel aspell aspell-ispell en-aspell lf alacritty terminfo-db tmux dunst pavucontrol mpv dbus hyprland qt6-wayland wl-clipboard waybar swaylock-effects yt-dlp grim slurp nsxiv pavucontrol pamixer
+  doas pkg install tree git bat ripgrep procs htop btop fastfetch fzf fish neovim py311-pynvim emacs-devel aspell aspell-ispell en-aspell lf alacritty terminfo-db tmux dunst pavucontrol mpv dbus hyprland qt6-wayland wl-clipboard waybar swaylock-effects yt-dlp grim slurp nsxiv pamixer unzip icu npm
 #+END_SRC
 
 
