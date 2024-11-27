@@ -1,0 +1,167 @@
+* Install River
+
+** Install everything I need
+
+#+BEGIN_SRC bash
+  doas pkg install tree git bat ripgrep procs htop btop fastfetch fzf fish neovim py311-pynvim emacs-devel aspell aspell-ispell en-aspell lf alacritty terminfo-db tmux dunst pavucontrol mpv dbus qt6-wayland wl-clipboard waybar swaylock-effects yt-dlp grim slurp nsxiv pamixer unzip icu npm river
+#+END_SRC
+
+
+** Add user into =video= group to enable 3D acceleration when available
+
+Access to =/dev/dri= is needed to allow 3D acceleration on video cards.
+
+#+BEGIN_SRC bash
+  doas pw groupmod video -m wison
+
+
+  # Confirm
+  groups wison
+  # wison wheel video
+#+END_SRC
+
+
+** Enable =seatd= and =dbus= daemon
+
+The =seatd= daemon helps manage access to shared system devices for non-root users in compositors; this includes graphics cards. Wayland compositors will need =seatd= to be enabled on the system and be running before starting a compositor environment.
+
+#+BEGIN_SRC bash
+  doas sysrc seatd_enable=YES
+  doas sysrc dbus_enable=YES
+
+  doas service dbus onestart
+  doas service seatd start
+#+END_SRC
+
+
+** How to start and debug
+
+=~/.config/river/init= has to be executable!!!
+
+Here is the =start-river.sh= script:
+
+#+BEGIN_SRC bash
+  #!/bin/sh
+
+  #
+  # `XDG_RUNTIME_DIR` has to be set before running `river`
+  #
+  # Remove the prev session and re-create the folder
+  #
+  export XDG_RUNTIME_DIR=/tmp/my-xdg-runtime
+  rm -rf $XDG_RUNTIME_DIR
+  mkdir $XDG_RUNTIME_DIR
+
+  #
+  #
+  # Launch river with logging
+  #
+  river 2> $XDG_RUNTIME_DIR/river.err > $XDG_RUNTIME_DIR/river.log
+#+END_SRC
+
+
+** Audio
+
+By default, =FreeBSD= will automatically detect sound card used by the system, you don't need to do anything.
+
+*** Check if your sound card has been detected correctly
+
+If you see any =pcm= output like below via either =dmesg= or =/dev/sndstat=, that means your sound card has been detected automatically:
+
+#+BEGIN_SRC bash
+  dmesg -a | rg pcm
+
+  # pcm0: <Conexant CX20632 (Analog)> at nid 25 and 26,27 on hdaa0
+  # pcm1: <Conexant CX20632 (Rear Analog Headphones)> at nid 28 on hdaa0
+  # pcm2: <Intel Tiger Lake (HDMI/DP 8ch)> at nid 4 on hdaa1
+#+END_SRC
+
+#+BEGIN_SRC bash
+  cat /dev/sndstat
+
+  # Installed devices:
+  # pcm0: <Conexant CX20632 (Analog)> (play/rec)
+  # pcm1: <Conexant CX20632 (Rear Analog Headphones)> (play)
+  # pcm2: <Intel Tiger Lake (HDMI/DP 8ch)> (play) default
+  # No devices installed from userspace.
+#+END_SRC
+
+
+*** Live change audio output device
+
+As you see the result from =cat /dev/sndstat=, you can choose audio output device between =pcm0/pcm1/pcm2=.
+
+You're able to make live change by running the following command:
+
+#+BEGIN_SRC bash
+  # Choose `pcm0`
+  sysctl hw.snd.default_unit=0
+  # Choose `pcm1`
+  sysctl hw.snd.default_unit=1
+  # Choose `pcm2`
+  sysctl hw.snd.default_unit=2
+#+END_SRC
+
+If you're playing, then you have to stop the audio/video and restart program to take affect!!!
+
+
+*** Audio over HDMI by default
+
+For =TH80=, the Intel GPU integrated with audio support, that's why you see =pcm2: <Intel Tiger Lake (HDMI/DP 8ch)> (play)=.
+
+But it's NOT the default audio output device, you have to change that if you want HDMI output by default.
+
+You can run ~sysctl hw.snd.default_unit=2~ for a live change, but you have to put it into =/etc/sysctl.conf= for permanent change like this:
+
+#+BEGIN_SRC bash
+  #
+  # Make audio over HDMI by default.
+  #
+  # ---------------------------------------------------------------------------
+  # cat /dev/sndstat
+  #
+  # Installed devices:
+  # pcm0: <Conexant CX20632 (Analog)> (play/rec) default
+  # pcm1: <Conexant CX20632 (Rear Analog Headphones)> (play)
+  # pcm2: <Intel Tiger Lake (HDMI/DP 8ch)> (play)
+  # No devices installed from userspace.
+  # ---------------------------------------------------------------------------
+  #
+  # That's why value `2`(pcm2) here to make the audio output over HDMI by default
+  #
+  hw.snd.default_unit=2
+#+END_SRC
+
+Make sure you read the comment to know which value you should set!!!
+
+After a reboot, use =mixer= to make sure that's the default audio output:
+
+#+BEGIN_SRC bash
+  mixer
+
+  # pcm2:mixer: <Intel Tiger Lake (HDMI/DP 8ch)> on hdaa1  (play) (default)
+  #     vol       = 0.05:0.05     pbk
+  #     pcm       = 0.05:0.05     pbk
+#+END_SRC
+
+
+
+** Wallpaper util
+
+*** SWWW
+
+#+BEGIN_SRC bash
+  git clone --depth=1 https://github.com/LGFae/swww.git
+  cd swww
+  doas pkg install pkgconf
+  cargo build --release
+  mv target/release/{swww, swww-daemon} ~/my-shell
+  cd .. && rm -rf swww
+#+END_SRC
+
+
+*** Pywal
+
+#+BEGIN_SRC bash
+ doas pkg install graphics/pywal 
+#+END_SRC

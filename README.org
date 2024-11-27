@@ -19,6 +19,7 @@
 ** Install =DE (Desktop Environment)= or =WM (Window Manager)=
 *** [[file:chapters/install-x.org][Install X]] 
 *** [[file:chapters/install-hyprland.org][Install Hyprland]]
+*** [[file:chapters/install-river.org][Install River]]
 ** ZFS dive deep
 *** [[file:chapters/zfs-overview.org][ZFS overview]]
 *** [[file:chapters/zfs-snapshot-feature.org][ZFS snapshot feature]]
