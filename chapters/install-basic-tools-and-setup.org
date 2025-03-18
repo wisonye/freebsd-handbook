@@ -214,6 +214,25 @@ Then relogin to take effects.
 #+END_SRC
 
 
+*** JetBrains mono
+
+#+BEGIN_SRC bash
+  sudo mkdir /usr/local/share/fonts/source-code-pro-nerd-fonts
+
+  # Install nerd font version
+  cd temp
+  curl -OL https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/JetBrainsMono.tar.xz
+  tar xvf JetBrainsMono.tar.xz
+  rm -rf  JetBrainsMono.tar.xz
+
+  # Update font cache
+  sudo mkdir /usr/local/share/fonts/jetbrains-mono-nerd-fonts
+  sudo mv ./*.ttf /usr/local/share/fonts/jetbrains-mono-nerd-fonts/
+  sudo fc-cache -fv
+  fc-cache -fv
+#+END_SRC
+
+
 *** Chinese fonts
 
 #+BEGIN_SRC bash
