@@ -1,0 +1,125 @@
+* Raspberry Pi 4 installation
+
+Make sure you go through the =Package management= chapter and =Install basic tools and setup= chapter first!!!
+
+** How to fix timezone
+
+Run ~bsdconfig~ and choose =Timezone= to fix it.
+
+
+** How to fix ethernet NIC doesn't show up or be set correctly
+
+Run ~bsdconfig -> Networking Mangement -> Network Interfaces~ to active the default =genet0= NIC.
+
+Then enable =DHCP= by adding the following settings to ~/etc/rc.conf~:
+
+#+BEGIN_SRC conf
+  #
+  # Comment or remove this!!!
+  #
+  #ifconfig_DEFAULT="DHCP inet6 accept_rtadv"
+
+  #
+  # Add this
+  #
+  ifconfig_genet0="DHCP"
+#+END_SRC
+
+
+** How to fix =SSL certificate problem: certificate not yet valid.= issue or =ntpd= can't start
+
+#+BEGIN_SRC bash
+  doas pkg install openssl
+#+END_SRC
+
+
+After that, make sure enable =ntpd= in ~/etc/rc.conf~:
+
+#+BEGIN_SRC conf
+  ntpd_enable="YES"
+  ntpd_sync_on_start="YES"
+#+END_SRC
+
+Restart manually when needed:
+
+#+BEGIN_SRC bash
+  doas service ntpd restart
+#+END_SRC
+
+
+** How to fix SSH terminal type issue
+
+*** Set the ~TERM~ env var before SSH until you solve the problem:
+
+#+BEGIN_SRC bash
+  # Bash
+  export TERM=xterm-256color
+
+  # Fish
+  set TERM xterm-256color
+#+END_SRC
+
+This makes your SSH works as expected.
+
+
+*** Add the =Alacritty= terminal info to FreeBSD terminfo database
+
+First, download the alacritty terminfo (text) and save it to a file BEFORE SSH into freebsd:
+
+#+BEGIN_SRC bash
+  curl -sSL https://raw.githubusercontent.com/alacritty/alacritty/master/extra/alacritty.info > ~/temp/alacritty.info
+#+END_SRC
+
+Then, =scp= it to Pi FreeBSD:
+
+#+BEGIN_SRC bash
+  scp -rv ~/temp/alacritty.info YOUR_USER@YOUR_IP:/home/YOUR_USER/temp/
+#+END_SRC
+
+
+Finally, ssh into Pi FreeBSD, switch to ~root~ user and add it to terminfo database:
+
+#+BEGIN_SRC bash
+  #
+  # Switch to root
+  #
+  doas su
+
+  cd ~
+  cp -rvf /home/YOUR_USER/temp/alacritty.info ./
+  cat alacritty.info | tic -x -
+#+END_SRC
+
+Now, all done, re-SSH to take affect.
+
+
+** Fine-tuning the hardware settings
+
+Add the following settings to ~/etc/sysctl.conf~:
+
+#+BEGIN_SRC conf
+  #
+  # Increase the CPU normal frequency, default is `600MHZ`
+  #
+  dev.cpu.0.freq=1800
+
+  kern.sched.preempt_thresh=224
+
+  #
+  # Disable the coredump to save space
+  #
+  kern.coredump=8
+
+  #
+  # Non-root user can mount external driver
+  #
+  # vfs.usermount=1
+  # vfs.read_max=128
+
+  #
+  # Share memory permission for some applications
+  #
+  kern.ipc.shm_allow_removed=1
+#+END_SRC
+
+Reboot to take affect.

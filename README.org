@@ -15,6 +15,7 @@
   doas zfs snapshot -r zroot@minimal
 #+END_SRC
 
+** [[file:chapters/raspberry-pi4-installation.org][Raspberry Pi 4 installation]]
 ** [[file:chapters/custom-kernel.org][Custom kernel]]
 ** Install =DE (Desktop Environment)= or =WM (Window Manager)=
 *** [[file:chapters/install-x.org][Install X]] 

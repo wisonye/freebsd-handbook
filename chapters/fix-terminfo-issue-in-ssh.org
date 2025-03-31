@@ -31,7 +31,7 @@ Permanent fix;
 Here is what you need to do on the =FreeBSD=:
 
 #+BEGIN_SRC bash
-  doas pkg install alacritty
+  # doas pkg install alacritty
 
   #
   # Make sure you're `root`!
