@@ -19,6 +19,7 @@
 ** Install =DE (Desktop Environment)= or =WM (Window Manager)=
 *** [[file:chapters/install-x.org][Install X]] 
 *** [[file:chapters/install-hyprland.org][Install Hyprland]]
+*** [[file:chapters/install-river.org][Install River]]
 ** ZFS dive deep
 *** [[file:chapters/zfs-overview.org][ZFS overview]]
 *** [[file:chapters/zfs-snapshot-feature.org][ZFS snapshot feature]]
@@ -53,6 +54,7 @@
 ** Development
 *** [[file:chapters/c-cpp.org][C/C++]]
 *** [[file:chapters/hare.org][Hare]]
+*** [[file:chapters/odin.org][Odin]]
 *** [[file:chapters/socket-communication.org][Socket (inter-process) communication]]
 ** How to
 *** [[file:chapters/how-to-show-cpu-info.org][How to show CPU info]]

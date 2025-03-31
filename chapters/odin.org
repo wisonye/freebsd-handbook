@@ -1,0 +1,25 @@
+* Odin
+
+#+BEGIN_SRC bash
+  git clone https://github.com/odin-lang/Odin.git 
+  cd Odin
+
+  #
+  # Checkout the last release commit tag: git checkout dev-yyyy-mm
+  #
+  # For example:
+  #
+  git checkout dev-2025-03
+
+  #
+  # Make sure to install llvm devel
+  #
+  doas pkg install llvm-devel
+
+  #
+  # Compile
+  #
+  make release-native 
+#+END_SRC
+
+Then add =Odin= folder to your ~$PATH~ and set ~ODIN_ROOT~ env var to =Odin= folder.
