@@ -207,9 +207,9 @@ Then relogin to take effects.
   rm -rf  SourceCodePro.tar.xz
 
   # Update font cache
-  sudo mkdir /usr/local/share/fonts/source-code-pro-nerd-fonts
-  sudo mv ./*.ttf /usr/local/share/fonts/source-code-pro-nerd-fonts/
-  sudo fc-cache -fv
+  doas mkdir /usr/local/share/fonts/source-code-pro-nerd-fonts
+  doas mv ./*.ttf /usr/local/share/fonts/source-code-pro-nerd-fonts/
+  doas fc-cache -fv
   fc-cache -fv
 #+END_SRC
 
@@ -217,8 +217,6 @@ Then relogin to take effects.
 *** JetBrains mono
 
 #+BEGIN_SRC bash
-  sudo mkdir /usr/local/share/fonts/source-code-pro-nerd-fonts
-
   # Install nerd font version
   cd temp
   curl -OL https://github.com/ryanoasis/nerd-fonts/releases/download/v3.3.0/JetBrainsMono.tar.xz
@@ -226,9 +224,9 @@ Then relogin to take effects.
   rm -rf  JetBrainsMono.tar.xz
 
   # Update font cache
-  sudo mkdir /usr/local/share/fonts/jetbrains-mono-nerd-fonts
-  sudo mv ./*.ttf /usr/local/share/fonts/jetbrains-mono-nerd-fonts/
-  sudo fc-cache -fv
+  doas mkdir /usr/local/share/fonts/jetbrains-mono-nerd-fonts
+  doas mv ./*.ttf /usr/local/share/fonts/jetbrains-mono-nerd-fonts/
+  doas fc-cache -fv
   fc-cache -fv
 #+END_SRC
 
