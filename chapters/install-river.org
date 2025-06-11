@@ -165,3 +165,55 @@ After a reboot, use =mixer= to make sure that's the default audio output:
 #+BEGIN_SRC bash
  doas pkg install graphics/pywal 
 #+END_SRC
+
+
+** Configuration
+
+*** How to list =app-id=
+
+You need to clone and compile =lswt=:
+
+#+BEGIN_SRC fish
+  cd temp
+  git clone --depth=1 https://git.sr.ht/~leon_plickat/lswt
+#+END_SRC
+
+
+You need to make the following changes in =Makefile= before compilation:
+
+#+BEGIN_SRC makefile
+  #
+  # To find `/usr/local/include/wayland-client.h`
+  #
+  CFLAGS+=-I/usr/local/include
+
+  #
+  # This doesn't work on FreeBSD!!!
+  #
+  # CFLAGS+=-fanalyzer
+
+  #
+  # To find `/usr/local/lib/libwayland-client.so`
+  #
+  LIBS=-lwayland-client -L/usr/local/lib
+#+END_SRC
+
+
+Save it and run =gmake=.
+
+If it works, then you can list the =app-id= like this:
+
+#+BEGIN_SRC fish
+  ./lswt
+  # state:   app-id:                       title:
+  # ----     org.qutebrowser.qutebrowser   "~leon_plickat/lswt - list Wayland toplevels - sourcehut git - qutebrowser"
+  # --a-     Alacritty                     "tmux new -s dev ~"
+#+END_SRC
+
+
+*** How to specify the given app open in another monitor (=output=)
+
+#+BEGIN_SRC fish
+  riverctl rule-add -app-id 'org.qutebrowser.qutebrowser' output 'DP-1'
+#+END_SRC
+
