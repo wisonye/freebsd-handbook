@@ -51,7 +51,7 @@ Make it more safe:
 Relogin to take effect.
 
 
-** Neovim config related
+** =Neovim= config related
 
 *** Install dependencies
 
@@ -97,11 +97,34 @@ Then put =/usr/local/llvm18/bin= into your =$PATH=
 
   # Clone repo
   git clone --depth=1 https://github.com/LuaLS/lua-language-server
+#+END_SRC
 
+
+Now, fix the cpp error: ~std::copy No member named 'copy' in namespace 'std'; did you mean 'bcopy'?~
+
+You need to add the ~#include <algorithm>~ line to the following files:
+
+#+BEGIN_SRC text
+  3rd/bee.lua/3rd/fmt/fmt/color.h
+  3rd/luamake/bee.lua/3rd/fmt/fmt/color.h
+#+END_SRC
+
+After that, they should look like this:
+
+#+BEGIN_SRC cpp
+  #include "format.h"
+
+  // Add this line!!!
+  #include <algorithm>
+#+END_SRC
+
+
+Now, you need to disable the following unit tests:
+
+#+BEGIN_SRC fish
   #
   # Disable unit test
   #
-  cd lua-language-server
   :> 3rd/bee.lua/test/test.lua
   :> test.lua
 
