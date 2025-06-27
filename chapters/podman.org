@@ -1,0 +1,181 @@
+* Podman
+
+** Installation
+
+#+BEGIN_SRC fish
+  # sysutils/podman                Manage Pods, Containers and Container Images
+  # sysutils/podman-suite          Metaport of Podman and Buildah toolkit
+  # sysutils/podman-compose        Script to run docker-compose.yml using podman
+
+  doas pkg install podman
+#+END_SRC
+
+
+#+BEGIN_SRC fish
+#+END_SRC
+
+
+** Setup
+
+*** Add =fdescfs= to =/etc/fstab=
+
+To properly support Podman's container restart policy, conmon needs =fdescfs= (file-descriptor file system)
+to be mounted on =/dev/fd=.
+
+To make it permanent, add the following line to =/etc/fstab=:
+
+#+BEGIN_SRC conf
+  fdesc   /dev/fd         fdescfs         rw      0       0
+#+END_SRC
+
+Then you can re-mount everthing and double check:
+
+#+BEGIN_SRC fish
+  #
+  # Re-mount  
+  #
+  doas mount -a
+
+  #
+  # List mounted devices
+  #
+  df
+
+  # Filesystem         1K-blocks    Used     Avail Capacity  Mounted on
+  # zroot/ROOT/default 937259828 4314316 932945512     0%    /
+  # devfs                      1       0         1     0%    /dev
+  # /dev/gpt/efiboot0     266144    1360    264784     1%    /boot/efi
+  # zroot/tmp          932965992   20480 932945512     0%    /tmp
+  # zroot/var/log      932945892     380 932945512     0%    /var/log
+  # zroot/home         932945608      96 932945512     0%    /home
+  # zroot/var/tmp      932945608      96 932945512     0%    /var/tmp
+  # zroot              932945608      96 932945512     0%    /zroot
+  # zroot/var/mail     932945672     160 932945512     0%    /var/mail
+  # zroot/var/crash    932945608      96 932945512     0%    /var/crash
+  # zroot/usr/ports    933799948  854436 932945512     0%    /usr/ports
+  # zroot/var/audit    932945608      96 932945512     0%    /var/audit
+  # zroot/usr/src      933824724  879212 932945512     0%    /usr/src
+  # zroot/home/wison   936725424 3779912 932945512     0%    /home/wison
+  # fdescfs                    1       0         1     0%    /dev/fd     [ Here it's:) ]
+#+END_SRC
+
+
+*** Start related services
+
+#+BEGIN_SRC fish
+  #
+  # Add to `/etc/rc.conf`
+  #
+  doas sysrc podman_enable=YES
+  doas sysrc linux_enable=YES
+
+  #
+  # Start services
+  #
+  doas service podman start
+  doas service linux start
+#+END_SRC
+
+
+*** Allow =docker.io= registries
+
+Add the =docker.io= to container registeries:
+
+
+#+BEGIN_SRC fish
+  doas nvim /usr/local/etc/containers/registries.conf 
+
+  #  
+  # Then append the following to line to the bottom
+  #  
+  unqualified-search-registries = ["docker.io"]~ to
+
+  #
+  # Save and exit
+  #
+#+END_SRC
+
+
+*** Enable container NAT
+
+Add NAT rules to =PF= configuration.
+
+Add the following settings to your =/etc/pf.conf=
+
+#+BEGIN_SRC conf
+  # ==============================================================================
+  #
+  # Macros
+  #
+  # - `nic_eth`: Default ethernet NIC
+  # - `nic_wlan`: Default wireless NIC
+  # - `nic_group `: The specified group name that applied to your NICs. You need
+  #                 to add the `group pfnic` parameter to `ifconfig_xxx` inside
+  #                 `/etc/rc.conf`.
+  # - `$nic_group:network`: Get back the NIC assigned network, e.g. 192.168.1.0/24
+  # - `($nic_eth)` or `($nic_wlan)`: Get back the exact NIC assigned IP
+  #
+  # ==============================================================================
+  nic_eth = "igc0"
+  nic_wlan = "wlan0"
+
+  # ==============================================================================
+  # NAT for podman
+  # ==============================================================================
+  nat on $nic_eth inet from <cni-nat> to any -> ($nic_eth)
+  nat on $nic_wlan inet from <cni-nat> to any -> ($nic_wlan)
+  # nat on $nic_eth inet6 from <cni-nat> to !ff00::/8 -> ($nic_eth)
+  # nat on $nic_wlan inet6 from <cni-nat> to !ff00::/8 -> ($nic_wlan)
+
+  rdr-anchor "cni-rdr/*"
+  nat-anchor "cni-rdr/*"
+  table <cni-nat>
+#+END_SRC
+
+
+Tips: You need to add the =nat on ...= rules above all =pass ...= rules. Otherwise, you will see the following errors when you reload your =pf=:
+
+#+BEGIN_SRC fish
+  doas pfctl -F all -f /etc/pf.conf
+
+  # /etc/pf.conf:156: Rules must be in order: options, ethernet, normalization, queueing, translation, filtering
+  # /etc/pf.conf:157: Rules must be in order: options, ethernet, normalization, queueing, translation, filtering
+  # /etc/pf.conf:161: Rules must be in order: options, ethernet, normalization, queueing, translation, filtering
+  # /etc/pf.conf:162: Rules must be in order: options, ethernet, normalization, queueing, translation, filtering
+  # pfctl: Syntax error in config file: pf rules not loaded
+#+END_SRC
+
+
+*** Enable =lo= NIC redirect to container
+
+First, enable it now:
+
+#+BEGIN_SRC fish
+  doas sysctl net.pf.filter_local=1
+#+END_SRC
+
+
+Second, add the kernel settings to =/etc/sysctl.conf= for permanent change:
+
+#+BEGIN_SRC conf
+  # ---------------------------------------------------------------------------
+  # Support for redirecting connections from the `podman` container host to
+  # services running inside a container is included for FreeBSD 13.3 and later.
+  # ---------------------------------------------------------------------------
+  net.pf.filter_local=1
+#+END_SRC
+
+
+** Run and stop containers
+
+$ sudo podman run -d --restart=always myimage
+
+
+For example if host port 1234 is redirected to an http service running in a
+container, you could connect to it using:
+
+# fetch -o- http://$(hostname):1234
+
+or
+
+# fetch -o- http://localhost:1234
