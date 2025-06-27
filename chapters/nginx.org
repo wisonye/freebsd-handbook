@@ -1,0 +1,75 @@
+* Nginx
+
+** Installation
+
+#+BEGIN_SRC fish
+  doas pkg install nginx 
+#+END_SRC
+
+
+** Configuration
+
+~doas nvim /usr/local/etc/nginx/nginx.conf~
+
+Modify the commented settings to the following:
+
+#+BEGIN_SRC fish
+  #
+  # another virtual host using mix of IP-, name-, and port-based configuration
+  #
+  server {
+      listen       8088;
+      # listen       somename:8088;
+      # server_name  somename  alias  another.alias;
+      server_name  localhost;
+
+      location / {
+          root   /home/wison/react/dropit-auction-app-gemini/dist;
+          index  index.html index.htm;
+      }
+  }
+#+END_SRC
+
+
+Only test the configuration and exit immediately:
+
+#+BEGIN_SRC fish
+  doas nginx -t
+
+  # nginx: the configuration file /usr/local/etc/nginx/nginx.conf syntax is ok
+  # nginx: configuration file /usr/local/etc/nginx/nginx.conf test is successful 
+#+END_SRC
+
+
+** Run
+
+#+BEGIN_SRC fish
+  #
+  # Start `nginx` daemon
+  #
+  doas nginx
+#+END_SRC
+
+
+After that, you can send signal to the daemon like this:
+
+#+BEGIN_SRC fish
+  #
+  # Reload configuration
+  #
+  doas nginx -s reload
+
+  #
+  # Stop and exit the daemon
+  #
+  doas nginx -s stop
+#+END_SRC
+
+
+To confirm it runs correctly or not, just print the TCP listen port to see:
+
+#+BEGIN_SRC fish
+  netstat -nap tcp | rg LISTEN
+  # tcp4       0      0 *.8088                 *.*                    LISTEN
+  # tcp4       0      0 *.80                   *.*                    LISTEN 
+#+END_SRC

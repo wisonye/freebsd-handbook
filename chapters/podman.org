@@ -168,6 +168,23 @@ Second, add the kernel settings to =/etc/sysctl.conf= for permanent change:
 
 ** Run and stop containers
 
+Here are the Fish shell abbrs I use everyday:
+
+#+BEGIN_SRC fish
+  #--------------------------------------------------------
+  # Docker command via `podman`
+  #--------------------------------------------------------
+  abbr d "doas podman"
+  abbr db "doas podman build --os=linux -f"
+  abbr dr "doas podman run -it --rm --os=linux"
+  abbr di "doas podman images --all"
+  abbr dii "doas podman image inspect --format '{{.Os}}/{{.Architecture}}' "
+  abbr dps "doas podman ps --all"
+  abbr dns "doas podman network ls"
+  abbr d-rm-all "doas podman rm --force --all --time 0"
+  abbr d-stop-a "doas podman stop --all --time 0"
+#+END_SRC
+
 $ sudo podman run -d --restart=always myimage
 
 
