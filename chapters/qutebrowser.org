@@ -224,6 +224,67 @@ Actuall, you can backup and restore this file with run all the above commands li
 
 
 
+** How to fix font issue for particular websites
+
+If you see any website can't display your preset fonts correctly, then you can do the following steps to fix it:
+
+*** 1. Create a user custom css file and add the =css selector= to override the ~font-family~ settings:
+
+For example, I created =~/.config/qutebrowser/custom_website_stylesheets.css= with the following CSS settings:
+
+#+BEGIN_SRC css
+  /*
+   * Fixed `https://docs.freebsd.org/en/books/handbook/` font issue
+   */
+  #TableOfContents {
+      font-family: "JetBrainsMono Nerd Font";
+  }
+
+  #MenuContents {
+      font-family: "JetBrainsMono Nerd Font";
+  }
+
+  /*
+   * Fixed `https://odin-lang.org/docs/overview/` font issue
+   */
+  .odin-menu {
+      font-family: "JetBrainsMono Nerd Font";
+  }
+
+  .odin-main {
+      font-family: "JetBrainsMono Nerd Font";
+  }
+
+  #TableOfContents a {
+      font-family: "JetBrainsMono Nerd Font";
+  }
+
+  /*
+   * Fixed `https://www.linkedin.com/` font issue
+   */
+  :lang(en) {
+      font-family: "JetBrainsMono Nerd Font";
+  }
+#+END_SRC
+
+
+*** 2. Add that custom css filename to the qutebrowser settings:
+
+You can either set it live in qutebrowser:
+
+#+BEGIN_SRC conf
+  :set content.user_stylesheets custom_website_stylesheets.css
+#+END_SRC
+
+
+Or set it into : =~/.config/qutebrowser/autoconfig.yml=:
+
+#+BEGIN_SRC conf
+  content.user_stylesheets:
+    global: custom_website_stylesheets.css
+#+END_SRC
+
+
 ** Userscript: =extension= concept in other browsers
 
 All details are in [[https://github.com/qutebrowser/qutebrowser/blob/main/doc/userscripts.asciidoc][here]].
