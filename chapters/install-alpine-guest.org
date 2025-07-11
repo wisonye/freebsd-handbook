@@ -1,0 +1,521 @@
+* Install Alpine Linux Guest
+
+** Create guest configuration 
+
+All available settings are in =/usr/local/share/examples/vm-bhyve/config.sample=. You better to modify on top of the existing pre-configed template!!!
+
+You should copy one of them, modify it and save to =$vm_dir/.template=.
+
+#+BEGIN_SRC fish
+  cd ~/vm/.templates/ 
+
+  #
+  # Copy the `alpine` sample
+  #
+  cp -rvf /usr/local/share/examples/vm-bhyve/alpine.conf  ./
+#+END_SRC
+
+
+After that, you have to make the following changes, otherwise, the installation process won't work:
+
+Finally, it looks like this:
+
+#+BEGIN_SRC conf
+  #
+  # loader
+  # Specify the loader to use for the guest. This can either be
+  # one of the original bhyve loaders (bhyveload/grub), or
+  # you can specify to use uefi firmware to load the guest
+  #
+  # Valid Options: bhyveload,grub,uefi,uefi-csm
+  #
+  loader="uefi"
+
+  #
+  # You can run `sysctl hw.ncpu | cut -d: -f2` to get the total CPU cores
+  #
+  cpu="16"
+  memory="16G"
+
+  #
+  # Virtual disk, make sure to change the size to what you want
+  # Valid Options: virtio-blk,ahci-hd,ahci-cd,nvme
+  #
+  disk0_type="nvme"
+  disk0_name="disk0.img"
+  disk0_size="60G"
+
+  #
+  # Virtual network and switch, plz make sure pick the correct
+  # virtual switch for different purposes.
+  #
+  network0_type="virtio-net"
+  # network0_switch="public"
+  network0_switch="internal"
+
+  #
+  # graphics
+  #
+  # Set to a value other than [empty]/off/false/no/0 to enable
+  # the bhyve frame buffer device. This creates a graphics console
+  # in the guest, which is accessible using vnc
+  #
+  # By default this is set at 800x600, and we find an available vnc
+  # port starting at 5900. The port can be seen in vm list|info output.
+  #
+  graphics="no"
+#+END_SRC
+
+
+I set ~graphics="no"~ that's because I don't need to install =X= or another =WM=, if you need that, you have to set it to ~graphics="yes"~ !!!
+I set ~graphics="no"~ that's because I don't need to install =X= or another =WM=, if you need that, you have to set it to ~graphics="yes"~ !!!
+I set ~graphics="no"~ that's because I don't need to install =X= or another =WM=, if you need that, you have to set it to ~graphics="yes"~ !!!
+
+One important thing is that:
+
+If you plan to run more than on guest at the same time with graphic is on, then you better to make sure every guest uses a different =graphics_port= for VNC to connect!!!
+
+
+** Download ISO and place it into =~/vm/.iso= folder
+
+#+BEGIN_SRC bash
+  doas vm iso
+
+  # DATASTORE           FILENAME
+  # default             alpine-standard-3.22.0-x86_64.iso
+  # default             Fedora-Everything-netinst-x86_64-39-1.5.iso
+  # default             archlinux-2024.03.01-x86_64.iso 
+#+END_SRC
+
+
+** Create guest VM
+
+=-t alpine: Use =$vm_dir/.template/alpine.conf= as template to create VM
+=-s 20GB=: Init 20GB virtual disk, override the =disk0.size= in config file
+=my-alpine=: VM name
+
+#+BEGIN_SRC bash
+  #
+  # Create VM, just created, not start the vm at all!!!
+  #
+  doas vm create -t alpine my-alpine
+
+  #
+  # List created VM
+  #
+  doas vm list
+  # NAME       DATASTORE  LOADER  CPU  MEMORY  VNC  AUTO  STATE
+  # my-alpine  default    uefi    16   16G     -    No    Stopped
+
+  #
+  # Here is where the VM located
+  #
+  ls -lht ~/vm/my-alpine/
+  # -rw-r--r--  1 root wheel  1.1K Jul 11 14:56 my-alpine.conf
+  # -rw-------  1 root wheel   60G Jul 11 14:56 disk0.img
+  # -rw-r--r--  1 root wheel   94B Jul 11 14:56 vm-bhyve.log
+#+END_SRC
+
+
+=~/vm/my-alpine/my-alpine.conf= is a copy of the given template with the newly added =uuid= and unique NIC mac address:
+
+#+BEGIN_SRC bash
+  bat ~/vm/my-alpine/my-alpine.conf
+
+  #
+  # loader
+  # Specify the loader to use for the guest. This can either be
+  # one of the original bhyve loaders (bhyveload/grub), or
+  # you can specify to use uefi firmware to load the guest
+  #
+  # Valid Options: bhyveload,grub,uefi,uefi-csm
+  #
+  loader="uefi"
+
+  #
+  # You can run `sysctl hw.ncpu | cut -d: -f2` to get the total CPU cores
+  #
+  cpu="16"
+  memory="16G"
+
+  #
+  # Virtual disk, make sure to change the size to what you want
+  # Valid Options: virtio-blk,ahci-hd,ahci-cd,nvme
+  #
+  disk0_type="nvme"
+  disk0_name="disk0.img"
+  disk0_size="60G"
+
+  #
+  # Virtual network and switch, plz make sure pick the correct
+  # virtual switch for different purposes.
+  #
+  network0_type="virtio-net"
+  # network0_switch="public"
+  network0_switch="internal"
+
+  #
+  # graphics
+  #
+  # Set to a value other than [empty]/off/false/no/0 to enable
+  # the bhyve frame buffer device. This creates a graphics console
+  # in the guest, which is accessible using vnc
+  #
+  # By default this is set at 800x600, and we find an available vnc
+  # port starting at 5900. The port can be seen in vm list|info output.
+  #
+  graphics="no"
+
+  #
+  # Newly added!!!
+  #
+  uuid="a2b2ac31-5df0-11f0-ae83-5847ca7014b5"
+  network0_mac="58:9c:fc:09:aa:1c"
+#+END_SRC
+
+
+Also, you can list the vm info like this:
+
+#+BEGIN_SRC bash
+  doas vm info my-alpine
+
+  # ------------------------
+  # Virtual Machine: my-alpine
+  # ------------------------
+  #   state: stopped
+  #   datastore: default
+  #   loader: grub
+  #   uuid: a2b2ac31-5df0-11f0-ae83-5847ca7014b5
+  #   cpu: 16
+  #   memory: 16G
+  # 
+  #   network-interface
+  #     number: 0
+  #     emulation: virtio-net
+  #     virtual-switch: internal
+  #     fixed-mac-address: 58:9c:fc:09:aa:1c
+  #     fixed-device: -
+  # 
+  #   virtual-disk
+  #     number: 0
+  #     device-type: file
+  #     emulation: virtio-blk
+  #     options: -
+  #     system-path: /home/wison/vm/my-alpine/disk0.img
+  #     bytes-size: 64424509440 (60.000G)
+  #     bytes-used: 1024 (1.000K)
+#+END_SRC
+
+
+If you want to re-create a VM, you can run ~doas vm destroy my-alpine~ to delete it and re-create again.
+
+
+** How to modify vm configuration
+
+#+BEGIN_SRC bash
+  doas vm configure my-alpine
+#+END_SRC
+
+
+** How to delete/destroy VM
+
+#+BEGIN_SRC bash
+  doas vm destroy my-alpine 
+#+END_SRC
+
+
+** Launch the guest installation process
+
+Now, let's install Alpine Linux:
+
+#+BEGIN_SRC bash
+  #
+  # `-f`: Guest will be started in the foreground on stdio. 
+  #
+  doas vm install -f my-alpine alpine-standard-3.22.0-x86_64.iso
+#+END_SRC
+
+After that, the alpine vm should run from your current console, follow the next section to install Alpine Linux.
+
+
+** Alpine Linux install process
+
+Login as ~root~, no password needed.
+
+*** Setup network (Assign static IP to VM NIC) if you're using =internal VM switch=
+
+**** Add static IP
+
+If your VM is connecting to the =vm-internal= switch, the alpine VM won't be assigned to an IP address, as you don't have =DHCP= service setup by default. Then, you have to assign the static IP manually.
+
+#+BEGIN_SRC bash
+  #
+  # List the VM NIC
+  #
+  localhost:~# ip add
+  # 1: lo: <LOOPBACK> mtu 65536 qdisc noop state DOWN qlen 1000
+  #     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+  # 2: eth0: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN qlen 1000
+  #     link/ether 58:9c:fc:09:aa:1c brd ff:ff:ff:ff:ff:ff
+#+END_SRC
+
+That means =eth0= is the vm's ethernet NIC, assgin the static IP to it like this:
+
+Make sure to change the network ID to match your =vm-internal= switch network ID!!!
+
+#+BEGIN_SRC fish
+  #
+  # Assign static ip
+  #
+  ip address add 192.168.2.10/24 dev eth0
+
+  #
+  # Up the device
+  #
+  ip link set eth0 up
+#+END_SRC
+
+If your =PF= setup correctly, now, the =ping= should work between host and VM.
+
+
+**** Add routing rules and DNS
+
+Then, you need to add the default router to the routing table:
+
+#+BEGIN_SRC fish
+  #
+  # Add the default gateway to your host's `vm-internal` switch IP
+  #
+  ip route add default via 192.168.2.1 dev eth0
+
+
+  #
+  # Print the routing table
+  #
+  ip route show
+  # default via 192.168.2.1 dev eth0
+  # 192.168.2.0/24 dev eth0 scope link  src 192.168.2.10
+
+  #
+  # Finally, add your host's DNS to vm's /etc/resolv.conf:
+  #
+  # vi /etc/resolv.conf
+  #
+  cat /etc/resolv.conf
+  # nameserver 192.168.1.200
+#+END_SRC
+
+
+Now, you should able to ping outside:
+
+#+BEGIN_SRC bash
+  #
+  # `vm-internal` switch NIC
+  #
+  ping 192.168.2.1
+
+  #
+  # Your home router
+  #
+  ping 192.168.1.X
+
+  #
+  # Outside world
+  #
+  ping google.co.nz
+#+END_SRC
+
+
+
+*** Run =setup-alpine= to install 
+
+Now, you can run ~setup-alpine~ to setup your Alpine VM.
+
+
+Here are the important settings for me:
+
+#+BEGIN_SRC fish
+  #
+  # Hostname
+  #
+  Enter system hostname (fully qualified form, e.g. 'foo.example.org') [localhost] my-alpine
+
+  #
+  # Network related
+  #
+  Which one do you want to initialize? (or '?' or 'done') [eth0]
+  Ip address for eth0? (or 'dhcp', 'none', '?') [192.168.2.10]
+  Netmask? [255.255.255.0]
+  Gateway? (or 'none') [192.168.2.1]
+  Configuration for eth0:
+    type=static
+    address=192.168.2.10
+    netmask=255.255.255.0
+    gateway=192.168.2.1
+  Do you want to do any manual network configuration? (y/n) [n]
+
+  ip: RTNETLINK answers: File exists
+  DNS domain name? (e.g 'bar.com') my-alpine
+  DNS nameserver(s)? [192.168.1.200]
+
+  #
+  # Timezone
+  #
+  Which timezone are you in? (or '?' or 'none') [UTC] Pacific/Auckland
+
+  #
+  # Network Time Protocol
+  #
+  Which NTP client to run? ('busybox', 'openntpd', 'chrony' or 'none') [busybox]
+   ,* service ntpd added to runlevel default
+   ,* Starting busybox ntpd ...
+   [ ok ]
+
+  #
+  # For New Zealand mirror, that's the =mirror.2degrees.nz= choice. Type `55`.
+  #
+   APK Mirror
+  ------------
+   (f)    Find and use fastest mirror
+   (s)    Show mirrorlist
+   (r)    Use random mirror
+   (e)    Edit /etc/apk/repositories with text editor
+   (c)    Community repo enable
+   (skip) Skip setting up apk repositories
+
+  Enter mirror number or URL: [1] 55
+
+  Added mirror mirror.2degrees.nz
+  Updating repository indexes... done.
+
+  #
+  # Create user
+  #
+    User
+  ------
+  Setup a user? (enter a lower-case loginname, or 'no') [no] wison
+  Full name for user wison [wison] WisonYe
+  Changing password for wison
+  New password:
+  Bad password: too weak
+  Retype password:
+  passwd: password for wison changed by root
+  Enter ssh key or URL for wison (or 'none') [none]
+  (1/1) Installing doas (6.8.2-r8)
+  Executing busybox-1.37.0-r18.trigger
+  OK: 10 MiB in 29 packages
+
+  #
+  # Use `openssh` and enable `sshd`
+  #
+  Which ssh server? ('openssh', 'dropbear' or 'none') [openssh]
+   ,* service sshd added to runlevel default
+   ,* Caching service dependencies ...
+   [ ok ]
+  ssh-keygen: generating new host keys: RSA ECDSA ED25519
+   ,* Starting sshd ...
+   [ ok ]
+
+
+  #
+  # Choose vm disk and use `sys` disk mode !!!
+  #
+   Disk & Install
+  ----------------
+  Available disks are:
+    nvme0n1       (64.4 GB  bhyve-NVMe                              )
+  
+  Which disk(s) would you like to use? (or '?' for help or 'none') [none] nvme0n1
+  
+  The following disk is selected:
+    nvme0n1       (64.4 GB  bhyve-NVMe                              )
+  
+  How would you like to use it? ('sys', 'data', 'crypt', 'lvm' or '?' for help) [?] sys
+  
+  WARNING: The following disk(s) will be erased:
+    nvme0n1       (64.4 GB  bhyve-NVMe                              )
+  
+  WARNING: Erase the above disk(s) and continue? (y/n) [n] y
+  Creating file systems...
+  mkfs.fat 4.2 (2021-01-31)
+  Installing system on /dev/nvme0n1p3:
+  Installing for x86_64-efi platform.
+  Installation finished. No error reported.
+  100% ████████████████████████████████████████████==> initramfs: creating /boot/initramfs-lts for 6.12.36-0-lts
+  Generating grub configuration file ...
+  Found linux image: /boot/vmlinuz-lts
+  Found initrd image: /boot/initramfs-lts
+  Warning: os-prober will not be executed to detect other bootable partitions.
+  Systems on them will not be added to the GRUB boot configuration.
+  Check GRUB_DISABLE_OS_PROBER documentation entry.
+  Adding boot menu entry for UEFI Firmware Settings ...
+  done
+  
+  Installation is complete. Please reboot.
+#+END_SRC
+
+
+*** Re-start VM
+
+Now, stop the VM and restart
+
+#+BEGIN_SRC fish
+  doas vm start -f my-alpine
+#+END_SRC
+
+Or 
+
+#+BEGIN_SRC fish
+  doas vm start my-alpine
+  doas vm console my-alpine
+#+END_SRC
+
+
+
+** Start VM in different way
+
+If you're currently inside a tmux session, then you HAVE TO detech or open a new terminal before running the following command, as it will start a new tmux and attach into it immediately.
+
+You got a few ways to start the VM:
+
+*** VM console Under current terminal tab
+
+If you want the vm console connect to current terminal tab (in foreground) directly, you should use this way:
+
+#+BEGIN_SRC bash
+  #
+  # `-f`: Guest will be started in the foreground on stdio. 
+  #
+  doas vm start -fi my-alpine
+#+END_SRC
+
+
+*** Start and connect VM console manually
+
+If you don't want to connect the vm console immediate, or you don't need the vm console at all (as you might ssh into it later), then you should use this way:
+
+#+BEGIN_SRC bash
+  #
+  # Start the VM in background
+  #
+  doas vm start my-alpine
+
+  #
+  # Connect to its console when needed
+  #
+  doas vm console my-alpine
+#+END_SRC
+
+
+** Stop and poweroff the VM
+
+#+BEGIN_SRC bash
+  doas vm stop my-alpine
+
+  #
+  # Force to power off when needed
+  #
+  doas vm poweroff -f my-alpine
+#+END_SRC
+
+

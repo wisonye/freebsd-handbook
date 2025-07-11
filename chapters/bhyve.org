@@ -84,7 +84,7 @@ The =vm= utility automatically creates a =bridge= device for each =virtual switc
 
 If you want all VMs attached to your current (FreeBSD Bhyve Host) network just like another computer on your LAN, then you should create a VM switch in this way.
 
-For example, your local LAN network is =192.168.1.0/24=, the network topology would like this:
+For example, your local LAN network is =192.168.1.0/24=, the network topology would look like this:
 
 ----------------------------------------------------
                 192.168.1.0/24
@@ -211,9 +211,9 @@ So, I have to do the following between switching physical NICs:
 
 *** Create internal virtual switch
 
-If you want all VMs attached to your current (FreeBSD Bhyve Host) network just like another computer on your LAN, then you should create a VM switch in this way.
+If you want all VMs in an isolated LAN under your current (FreeBSD Bhyve Host) network, similar to a VPC, then you should create a VM switch in this way.
 
-For example, your local LAN network is =192.168.1.0/24=, the network topology would like this:
+For example, your local LAN network is =192.168.1.0/24=, the network topology would look like this:
 
 ----------------------------------------------------
                 192.168.1.0/24
@@ -709,14 +709,18 @@ After that, you will see the new RSA key there:
 Add your VM's ip and name into =/etc/hosts=:
 
 #+BEGIN_SRC conf
-  192.168.2.10    my-arch
+  192.168.2.10    my-alpine
   192.168.2.20    my-openbsd
 #+END_SRC
 
+Before ~scp~, you have to login to the vm and create ~~/.ssh~ folder first!!!
+Before ~scp~, you have to login to the vm and create ~~/.ssh~ folder first!!!
+Before ~scp~, you have to login to the vm and create ~~/.ssh~ folder first!!!
 
 And then, you need to ssh copy =~/.ssh/id_rsa.pub= into VM's =~/.ssh/authorized_keys=:
 
 #+BEGIN_SRC bash
+  scp -rv ~/.ssh/id_rsa.pub wison@my-alpine:/home/YOUR_USER_NAME_HERE/.ssh/authorized_keys
   scp -rv ~/.ssh/id_rsa.pub wison@my-arch:/home/YOUR_USER_NAME_HERE/.ssh/authorized_keys
   scp -rv ~/.ssh/id_rsa.pub wison@my-openbsd:/home/YOUR_USER_NAME_HERE/.ssh/authorized_keys
 #+END_SRC
