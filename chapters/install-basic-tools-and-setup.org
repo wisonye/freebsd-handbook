@@ -168,6 +168,218 @@ First you need to download and install the lastest zig release from [[here][http
 Then move =zig-out/bin/zls= to your =$PATH= directory.
 
 
+** =Python= and =pip= and =Virtual Environment=
+
+*** Install =Python=
+
+#+BEGIN_SRC fish
+  # lang/python                    "meta-port" for the default version of Python interpreter
+  # lang/python-doc-html           Documentation for the Python programming language
+  # lang/python-doc-pdf-a4         Documentation for the Python programming language
+  # lang/python-doc-text           Documentation for the Python programming language
+  # lang/python-mode.el            Emacs lisp module for the Python language
+  # lang/python2                   Meta-port for the Python interpreter 2.7
+  # lang/python27                  Interpreted object-oriented programming language
+  # lang/python3                   Meta-port for the Python interpreter 3.x
+  # lang/python310                 Interpreted object-oriented programming language
+  # lang/python311                 Interpreted object-oriented programming language
+  # lang/python312                 Interpreted object-oriented programming language
+  # lang/python39                  Interpreted object-oriented programming language
+#+END_SRC
+
+By default, after =Install everything I need= section, =Python= should be already installed automatically. If not, install it manually by picking the specific version you wanted:
+
+#+BEGIN_SRC fish
+  #
+  # For example, you want `lang/python311`
+  #
+  doas pkg install python311
+
+  #
+  # Make sure to create a symbol link to it, as the installed
+  # binary usually named as `pythonXXX` (XXX is the version number)
+  #
+  doas ln -s /usr/local/bin/python3.11 /usr/local/bin/python
+
+  #
+  # Print the version to confirm it works
+  # binary usually named as `pythonXXX` (XXX is the version number)
+  #
+  python --version
+  # Python 3.11.12
+#+END_SRC
+
+
+
+*** Install =pip=
+
+=Pip= is the standard =Python package manager= for installing and managing project dependencies.
+
+
+#+BEGIN_SRC fish
+  #
+  # Download
+  #
+  cd ~/temp && curl -O https://bootstrap.pypa.io/get-pip.py
+
+  #
+  # Install it
+  #
+  doas python get-pip.py
+
+  #
+  # Print version to confirm it works
+  #
+  pip --version
+#+END_SRC
+
+
+Now, try to install something:
+
+#+BEGIN_SRC fish
+  I  wison | /home/wison/temp/freebsd-handbook   pip install calcure
+
+  # Defaulting to user installation because normal site-packages is not writeable
+  # Collecting calcure
+  #   Downloading calcure-3.2.1-py3-none-any.whl.metadata (5.3 kB)
+  # Collecting holidays (from calcure)
+  #   Downloading holidays-0.76-py3-none-any.whl.metadata (44 kB)
+  # Collecting jdatetime (from calcure)
+  #   Downloading jdatetime-5.2.0-py3-none-any.whl.metadata (5.6 kB)
+  # Collecting icalendar (from calcure)
+  #   Downloading icalendar-6.3.1-py3-none-any.whl.metadata (9.0 kB)
+  # Collecting python-dateutil (from holidays->calcure)
+  #   Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+  # Collecting tzdata (from icalendar->calcure)
+  #   Downloading tzdata-2025.2-py2.py3-none-any.whl.metadata (1.4 kB)
+  # Collecting jalali-core>=1.0 (from jdatetime->calcure)
+  #   Downloading jalali_core-1.0.0-py3-none-any.whl.metadata (738 bytes)
+  # Requirement already satisfied: six>=1.5 in /usr/local/lib/python3.11/site-packages (from python-dateutil->holidays->calcure) (1.17.0)
+  # Downloading calcure-3.2.1-py3-none-any.whl (62 kB)
+  # Downloading holidays-0.76-py3-none-any.whl (1.1 MB)
+  #    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.1/1.1 MB 4.7 MB/s eta 0:00:00
+  # Downloading icalendar-6.3.1-py3-none-any.whl (242 kB)
+  # Downloading jdatetime-5.2.0-py3-none-any.whl (12 kB)
+  # Downloading jalali_core-1.0.0-py3-none-any.whl (3.6 kB)
+  # Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+  # Downloading tzdata-2025.2-py2.py3-none-any.whl (347 kB)
+  # Installing collected packages: tzdata, python-dateutil, jalali-core, jdatetime, icalendar, holidays, calcure
+  #    ━━━━━━━━━━━━━━━━━━━━━━╸━━━━━━━━━━━━━━━━━ 4/7 [icalendar]  WARNING: The script icalendar is installed in '/home/wison/.local/bin' which is not on PATH.
+  #   Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.
+  #    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━╸━━━━━━━━━━━ 5/7 [holidays]  WARNING: The script calcure is installed in '/home/wison/.local/bin' which is not on PATH.
+  #   Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.
+  # Successfully installed calcure-3.2.1 holidays-0.76 icalendar-6.3.1 jalali-core-1.0.0 jdatetime-5.2.0 python-dateutil-2.9.0.post0 tzdata-2025.2
+#+END_SRC
+
+As you can see the warnning: =WARNING: The script icalendar is installed in '/home/wison/.local/bin' which is not on PATH.=
+
+So, make sure put it into your =$PATH=
+
+
+Tips:
+
+=Pip= install cache folder: ~/.cache/pip/
+=Pip= install binray folder: ~/.local/bin
+
+
+
+
+*** =Virtual Environment=
+
+Python uses the =venv= module to create isolated =virtual environments= on your server, allowing you to separate specific dependencies in your project from the system-wide Python environment. Follow the steps below to create a new virtual environment using the venv module.
+
+#+BEGIN_SRC fish
+  #
+  # Go into your python projects root folder, for example:
+  #
+  cd ~/python
+
+  #
+  # 1. Create virtual environment in current folder
+  #
+  python -m venv terminal-ui
+
+  #
+  # 2. Activate virtual environment (I use `fish` shell)
+  #
+  . terminal-ui/bin/activate.fish
+  # I (terminal-ui)  wison | /home/wison/python   pwd
+
+  #
+  # 3. See where `python` bin lives
+  #
+  which python
+  # /home/wison/python/terminal-ui/bin/python
+
+
+  #
+  # 4. Work on your python project, all `pip install` modules only
+  #    related to this project (inside the current virtual
+  #    environment)
+  #
+  #    For example: install some packages
+  pip install requests
+  # Collecting requests
+  #   Downloading requests-2.32.4-py3-none-any.whl.metadata (4.9 kB)
+  # Collecting charset_normalizer<4,>=2 (from requests)
+  #   Downloading charset_normalizer-3.4.2-py3-none-any.whl.metadata (35 kB)
+  # Collecting idna<4,>=2.5 (from requests)
+  #   Downloading idna-3.10-py3-none-any.whl.metadata (10 kB)
+  # Collecting urllib3<3,>=1.21.1 (from requests)
+  #   Downloading urllib3-2.5.0-py3-none-any.whl.metadata (6.5 kB)
+  # Collecting certifi>=2017.4.17 (from requests)
+  #   Downloading certifi-2025.7.14-py3-none-any.whl.metadata (2.4 kB)
+  # Downloading requests-2.32.4-py3-none-any.whl (64 kB)
+  #    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 64.8/64.8 kB 2.1 MB/s eta 0:00:00
+  # Downloading certifi-2025.7.14-py3-none-any.whl (162 kB)
+  #    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 162.7/162.7 kB 2.6 MB/s eta 0:00:00
+  # Downloading charset_normalizer-3.4.2-py3-none-any.whl (52 kB)
+  #    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 52.6/52.6 kB 4.2 MB/s eta 0:00:00
+  # Downloading idna-3.10-py3-none-any.whl (70 kB)
+  #    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 70.4/70.4 kB 6.1 MB/s eta 0:00:00
+  # Downloading urllib3-2.5.0-py3-none-any.whl (129 kB)
+  #    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 129.8/129.8 kB 4.7 MB/s eta 0:00:00
+  # Installing collected packages: urllib3, idna, charset_normalizer, certifi, requests
+  # Successfully installed certifi-2025.7.14 charset_normalizer-3.4.2 idna-3.10 requests-2.32.4 urllib3-2.5.0
+  # 
+  # [notice] A new release of pip is available: 24.0 -> 25.1.1
+  # [notice] To update, run: pip install --upgrade pip
+
+  #
+  # 4.1. If you see `[notice] To update, run: pip install --upgrade pip`, make sure
+  #      you upgrade, otherwise, some commands won't work correctly.
+  #
+  pip install --upgrade pip
+  # Requirement already satisfied: pip in ./lib/python3.11/site-packages (24.0)
+  # Collecting pip
+  #   Downloading pip-25.1.1-py3-none-any.whl.metadata (3.6 kB)
+  # Downloading pip-25.1.1-py3-none-any.whl (1.8 MB)
+  #    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 3.4 MB/s eta 0:00:00
+  # Installing collected packages: pip
+  #   Attempting uninstall: pip
+  #     Found existing installation: pip 24.0
+  #     Uninstalling pip-24.0:
+  #       Successfully uninstalled pip-24.0
+  # Successfully installed pip-25.1.1
+
+  #
+  # 4.2 You can list all python modules in this virtual environment:
+  #
+  pip freeze
+  # certifi==2025.7.14
+  # charset-normalizer==3.4.2
+  # idna==3.10
+  # requests==2.32.4
+  # urllib3==2.5.0
+
+  #
+  # 5. When you done with the current project, run `deactivate` to exit
+  #    the current virtual environment.
+  #
+  deactivate
+#+END_SRC
+
+
 ** Create and copy GIT SSH key
 
 #+BEGIN_SRC bash
