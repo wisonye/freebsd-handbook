@@ -471,3 +471,12 @@ Then relogin to take effects.
 #+BEGIN_SRC bash
   doas pkg install chinese/sourcehansans-sc-otf chinese/sourcehansans-tc-otf
 #+END_SRC
+
+
+*** Webfont (=QuteBrowser= needs this!!!)
+
+This is a MUST to install, otherwise =qutebrowser= looks super ugly in some websites!!!
+
+#+BEGIN_SRC fish
+  doas pkg install webfonts 
+#+END_SRC
