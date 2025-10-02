@@ -17,6 +17,9 @@
 
 ** Setup
 
+You cna find the following informat from [[http://podman.io/docs/installation#installing-on-freebsd-140][here]]
+
+
 *** Add =fdescfs= to =/etc/fstab=
 
 To properly support Podman's container restart policy, conmon needs =fdescfs= (file-descriptor file system)
@@ -174,14 +177,35 @@ Here are the Fish shell abbrs I use everyday:
   #--------------------------------------------------------
   # Docker command via `podman`
   #--------------------------------------------------------
+
+  # Docker
   abbr d "doas podman"
+
+  # Docker build
   abbr db "doas podman build --os=linux -f"
+
+  # Docker run
   abbr dr "doas podman run -it --rm --os=linux"
+
+  # Docker images
   abbr di "doas podman images --all"
+
+  # Docker image inspect
   abbr dii "doas podman image inspect --format '{{.Os}}/{{.Architecture}}' "
+
+  # Docker container inspect
+  abbr dci "doas podman inspect "
+
+  # Docker process status
   abbr dps "doas podman ps --all"
+
+  # Docker network status
   abbr dns "doas podman network ls"
+
+  # Docker remove and stop all running containers
   abbr d-rm-all "doas podman rm --force --all --time 0"
+
+  # Docker stop all running containers
   abbr d-stop-a "doas podman stop --all --time 0"
 #+END_SRC
 
