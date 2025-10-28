@@ -1,4 +1,4 @@
-* How to fix broken =/etc/rc.conf=
+* How to fix a failed boot
 
 When you make a mistake in the =/etc/rc.conf= or another startup file, it might cause the =FreeBSD= not to boot or keep rebooting. So what can you do in that situation???
 
@@ -8,9 +8,14 @@ After that, run the following commands to fix the broken =/etc/rc.conf=:
 
 #+BEGIN_SRC bash
   #
-  # You must re-mount the root file system into `read/write` mode!!!
+  # Option 1: You must re-mount the root file system into `read/write` mode!!!
   #
   mount -urw
+
+  #
+  # Option 2: Or you can temporary turn off the `readonly` flag like this
+  #
+  zfs set readonly=false zroot/ROOT/default
 
   #
   # Now, fix it:)
